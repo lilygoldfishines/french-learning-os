@@ -13,6 +13,8 @@ export interface SyncStatus {
   pending: number;
   conflicts: number;
   last?: SyncReport;
+  /** opened from a password-reset email: ask for a new password */
+  recovery?: boolean;
 }
 
 let status: SyncStatus = { signedIn: false, state: 'off', pending: 0, conflicts: 0 };
@@ -83,6 +85,8 @@ export async function startSync() {
     table.hook('deleting', touch);
   }
   window.addEventListener('online', () => void syncNow());
+  // an auth email link opened into an already-running app: reload so the Supabase client reads it at start-up
+  window.addEventListener('hashchange', () => { if (/access_token=|type=recovery/.test(window.location.hash)) window.location.reload(); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void syncNow(); });
   setInterval(() => void syncNow(), 3 * 60 * 1000);
   await refreshCounts();
@@ -96,16 +100,38 @@ async function attachAuth() {
   if (attached) return;
   attached = true;
   const sb = await getClient();
-  sb.auth.onAuthStateChange((_e, s) => { void onSession(s); });
+  sb.auth.onAuthStateChange((event, s) => {
+    if (event === 'PASSWORD_RECOVERY') set({ recovery: true });
+    void onSession(s);
+  });
   const { data } = await sb.auth.getSession();
   await onSession(data.session);
+}
+
+export class AuthError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) { super(message); this.code = code; }
 }
 
 export async function signIn(email: string, password: string) {
   const sb = await getClient();
   await attachAuth();
   const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthError(error.message, (error as { code?: string }).code ?? (/invalid login credentials/i.test(error.message) ? 'invalid_credentials' : undefined));
+}
+
+export async function requestPasswordReset(email: string) {
+  const sb = await getClient();
+  await attachAuth();
+  const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + window.location.pathname });
+  if (error) throw new AuthError(error.message);
+}
+
+export async function setNewPassword(password: string) {
+  const sb = await getClient();
+  const { error } = await sb.auth.updateUser({ password });
+  if (error) throw new AuthError(error.message);
+  set({ recovery: false });
 }
 export async function signUp(email: string, password: string): Promise<'signed-in' | 'confirm-email'> {
   const sb = await getClient();
@@ -119,4 +145,17 @@ export async function signOut() {
   await sb.auth.signOut();
   await resetSyncState();
   await refreshCounts();
+}
+
+export const isAuthRedirect = () => /^#(access_token|error)=/.test(window.location.hash) || /^#.*[&]type=recovery/.test(window.location.hash);
+
+/**
+ * Called before the router starts when the page was opened from a confirmation / password-reset email:
+ * Supabase must read the tokens in the hash before the hash router rewrites it.
+ */
+export async function handleAuthRedirect() {
+  const err = new URLSearchParams(window.location.hash.slice(1)).get('error_description');
+  await attachAuth();
+  if (err) set({ state: 'error', error: err });
+  window.history.replaceState(null, '', window.location.pathname + '#/settings');
 }

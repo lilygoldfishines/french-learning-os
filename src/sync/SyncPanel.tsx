@@ -4,7 +4,7 @@ import { db, type Conflict } from '../db/db';
 import { Button, Field, Input, Section, useToast } from '../ui/kit';
 import { tr, trf } from '../i18n';
 import { resolveConflict } from './engine';
-import { signIn, signOut, signUp, syncNow, useSyncStatus } from './auto';
+import { AuthError, requestPasswordReset, setNewPassword, signIn, signOut, signUp, syncNow, useSyncStatus } from './auto';
 
 const TABLE_LABEL: Record<string, string> = {
   vocab: '词汇', grammar: '语法', expression: '表达', sentence: '句子', error: '错误', goal: '目标', assessment: '评估', retro: '复盘', link: '关联',
@@ -69,11 +69,30 @@ export default function SyncPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
+  const [newPw, setNewPw] = useState('');
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setMsg('');
-    try { await fn(); } catch (e) { setMsg((e as Error).message); }
+    try { await fn(); } catch (e) {
+      setMsg(e instanceof AuthError && e.code === 'invalid_credentials'
+        ? tr('邮箱或密码不对。注意大小写，以及 iPhone 是否在注册时自动填了「强密码」（可在「设置 → 密码」里查看）。也可以点「忘记密码」重设。')
+        : (e as Error).message);
+    }
     setBusy(false);
   };
+
+  if (s.recovery) {
+    return (
+      <Section title={tr('云同步')}>
+        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); run(async () => { await setNewPassword(newPw); setNewPw(''); toast(tr('新密码已设置')); }); }}>
+          <p className="text-sm">{tr('请设置一个新密码。')}</p>
+          <Field label={tr('新密码（至少 6 位）')}><Input type="password" autoComplete="new-password" value={newPw} onChange={(e) => setNewPw(e.target.value)} /></Field>
+          <Button kind="primary" type="submit" disabled={busy || newPw.length < 6}>{tr('保存新密码')}</Button>
+          {msg && <p className="text-sm text-bad">{msg}</p>}
+          <p className="text-xs text-muted">{tr('如果你是在 Safari 里打开的这封邮件：设好新密码后，回到主屏幕上的应用，用新密码登录。')}</p>
+        </form>
+      </Section>
+    );
+  }
 
   return (
     <Section title={tr('云同步')}>
@@ -89,6 +108,10 @@ export default function SyncPanel() {
                 const r = await signUp(email, password);
                 if (r === 'confirm-email') setMsg(tr('确认邮件已发出。请在邮件里点确认链接，然后回到这里用同一个邮箱和密码登录。'));
               })}>{tr('注册新账号')}</Button>
+              <Button type="button" kind="plain" className="ml-auto" disabled={busy || !email.includes('@')} onClick={() => run(async () => {
+                await requestPasswordReset(email);
+                setMsg(tr('重设密码的邮件已发出。点邮件里的链接，在打开的页面里设新密码。'));
+              })}>{tr('忘记密码')}</Button>
             </div>
           </form>
           {msg && <p className="text-sm text-warn">{msg}</p>}

@@ -656,5 +656,10 @@ const EN: Record<string, string> = {
   "打开应用、回到应用、修改数据后几秒，以及每 3 分钟，都会自动同步。": "Syncs automatically when you open or return to the app, a few seconds after you change something, and every 3 minutes.",
   "{0} 条记录在两台设备上都改过，请选择保留哪个版本": "{0} records were changed on two devices — choose which version to keep",
   "同步出错": "Sync error", "离线": "Offline", "已同步 · {0}": "Synced · {0}", "{0} 条记录在两台设备上都改过。": "{0} records were changed on two devices.", "去处理": "Resolve",
+  /* password reset */
+  "邮箱或密码不对。注意大小写，以及 iPhone 是否在注册时自动填了「强密码」（可在「设置 → 密码」里查看）。也可以点「忘记密码」重设。": "Wrong email or password. Check upper/lower case, and whether your iPhone filled in a “strong password” when you signed up (see Settings → Passwords). Or tap “Forgot password” to reset it.",
+  "新密码已设置": "New password saved", "请设置一个新密码。": "Choose a new password.", "新密码（至少 6 位）": "New password (at least 6 characters)", "保存新密码": "Save new password",
+  "如果你是在 Safari 里打开的这封邮件：设好新密码后，回到主屏幕上的应用，用新密码登录。": "If this email opened in Safari: after setting the new password, go back to the home-screen app and sign in with it.",
+  "忘记密码": "Forgot password", "重设密码的邮件已发出。点邮件里的链接，在打开的页面里设新密码。": "Password-reset email sent. Click its link and set a new password on the page that opens.",
 };
 export default EN;

@@ -449,3 +449,37 @@ test('15 · cloud sync between two devices (stand-in server, real client library
   await expect(page.getByText('scene (B)')).toBeVisible();
   await ctxB.close();
 });
+
+test('16 · sign-in: wrong password explained; forgot password → email link → set new password', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'auth flow checked once');
+  const user = { id: '9a8b7c6d-0000-4000-8000-000000000002', email: 'ines@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-11-17T00:00:00Z' };
+  const calls: string[] = [];
+  await page.route('https://rloipmnxjahndadimroe.supabase.co/**', async (route) => {
+    const req = route.request(); const url = new URL(req.url());
+    const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
+    calls.push(`${req.method()} ${url.pathname}`);
+    if (url.pathname === '/auth/v1/token') return json({ code: 'invalid_credentials', error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400);
+    if (url.pathname === '/auth/v1/recover') return json({});
+    if (url.pathname === '/auth/v1/user') return json(user);
+    if (url.pathname.startsWith('/rest/v1/')) return json(url.pathname.includes('rpc') ? [] : []);
+    return json({});
+  });
+  await go(page, '/settings');
+  await page.getByLabel('邮箱').fill(user.email);
+  await page.getByLabel('密码（至少 6 位）').fill('wrongpass');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page.getByText(/邮箱或密码不对/)).toBeVisible();
+  await page.getByRole('button', { name: '忘记密码' }).click();
+  await expect(page.getByText(/重设密码的邮件已发出/)).toBeVisible();
+  expect(calls).toContain('POST /auth/v1/recover');
+
+  // the email link opens the app with a recovery session in the URL
+  await page.goto(`./#access_token=tok&expires_at=${Math.floor(Date.now() / 1000) + 3600}&expires_in=3600&refresh_token=r&token_type=bearer&type=recovery`);
+  await expect(page.getByText('请设置一个新密码。')).toBeVisible();
+  await expect(page).toHaveURL(/#\/settings$/);
+  await page.getByLabel('新密码（至少 6 位）').fill('newsecret1');
+  await page.getByRole('button', { name: '保存新密码' }).click();
+  await expect(page.getByText(`已登录：${user.email}`)).toBeVisible();
+  expect(calls).toContain('PUT /auth/v1/user');
+});

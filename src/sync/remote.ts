@@ -9,7 +9,9 @@ export const SUPABASE_KEY = 'sb_publishable_LJOhb5HVcu2NDu7JdUjEOg_wqnObKSi';
 let client: Promise<SupabaseClient> | null = null;
 export function getClient() {
   client ??= import('@supabase/supabase-js').then(({ createClient }) =>
-    createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'flos-auth' } }),
+    // implicit flow: email links may open in Safari while the app lives on the home screen (separate storage),
+    // so the PKCE verifier would not be found; implicit links carry the session themselves.
+    createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'flos-auth', flowType: 'implicit', detectSessionInUrl: true } }),
   );
   return client;
 }
