@@ -63,6 +63,7 @@ export default function SettingsPage() {
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const [usage, setUsage] = useState('');
   const [pending, setPending] = useState<{ backup: Backup; problems: string[] } | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     navigator.storage?.persisted?.().then(setPersisted);
@@ -146,7 +147,16 @@ export default function SettingsPage() {
         </Section>
 
         <Section title="关于">
-          <p className="text-sm text-muted">French Learning OS · 第二阶段 MVP · 数据只保存在这台设备上（云同步将在下一阶段加入）。</p>
+          <p className="text-sm text-muted">French Learning OS · 版本 {__BUILD__}</p>
+          <p className="mt-1 text-sm text-muted">数据只保存在这台设备上（云同步将在下一阶段加入）。</p>
+          <Button className="mt-3" disabled={updating} onClick={async () => {
+            setUpdating(true);
+            const reg = await navigator.serviceWorker?.getRegistration();
+            if (!reg) { toast('当前环境不支持离线更新'); setUpdating(false); return; }
+            navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+            await reg.update().catch(() => {});
+            setTimeout(() => { setUpdating(false); if (!reg.installing && !reg.waiting) toast('已经是最新版本'); }, 4000);
+          }}>{updating ? '正在检查…' : '检查更新'}</Button>
         </Section>
       </div>
     </div>

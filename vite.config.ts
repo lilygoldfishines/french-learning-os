@@ -7,6 +7,7 @@ import { defineConfig } from 'vite';
 // Relative base + HashRouter: works on GitHub Pages under /<repo>/ and anywhere else.
 export default defineConfig({
   base: './',
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC') },
   plugins: [
     react(),
     tailwindcss(),
