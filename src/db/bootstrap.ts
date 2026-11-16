@@ -48,9 +48,10 @@ export async function requestPersistence(): Promise<boolean | null> {
 /** Returns a referentially stable object: it only changes when a setting value changes. */
 export function useSettings(): Settings {
   const s = useLiveQuery(() => getMeta<Settings>('settings', DEFAULT_SETTINGS), []);
-  const key = JSON.stringify(s ?? null);
+  const merged = { ...DEFAULT_SETTINGS, ...(s ?? {}) };
+  const key = JSON.stringify(merged);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => ({ ...DEFAULT_SETTINGS, ...(s ?? {}) }), [key]);
+  return useMemo(() => merged, [key]);
 }
 
 export async function saveSettings(patch: Partial<Settings>) {

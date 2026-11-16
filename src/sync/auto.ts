@@ -85,8 +85,6 @@ export async function startSync() {
     table.hook('deleting', touch);
   }
   window.addEventListener('online', () => void syncNow());
-  // an auth email link opened into an already-running app: reload so the Supabase client reads it at start-up
-  window.addEventListener('hashchange', () => { if (/access_token=|type=recovery/.test(window.location.hash)) window.location.reload(); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void syncNow(); });
   setInterval(() => void syncNow(), 3 * 60 * 1000);
   await refreshCounts();

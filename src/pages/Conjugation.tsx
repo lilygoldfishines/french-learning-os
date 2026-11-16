@@ -54,9 +54,12 @@ function Practice() {
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [logged, setLogged] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
+  // stable: a question on screen is only replaced when the learner asks for the next one
   const next = useCallback(async () => {
-    const queue = await buildConjQueue(settings);
+    const queue = await buildConjQueue(settingsRef.current);
     setCounts({ due: queue.due.length, fresh: queue.fresh.length, total: queue.total, doneToday: queue.doneToday });
     setAnswer(''); setVerdict(null); setLogged(false);
     for (const card of [...queue.due, ...queue.fresh]) {
@@ -71,7 +74,7 @@ function Practice() {
       return;
     }
     setQ(null);
-  }, [settings]);
+  }, []);
 
   useEffect(() => { next(); }, [next]);
 
