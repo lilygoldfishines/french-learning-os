@@ -1,3 +1,4 @@
+import type React from 'react';
 import { createContext, useCallback, useContext, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
@@ -8,7 +9,7 @@ export function Button({ kind = 'ghost', className, ...p }: ButtonHTMLAttributes
     <button
       {...p}
       className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors disabled:opacity-40',
+        'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors disabled:opacity-40',
         kind === 'primary' && 'bg-ink text-paper hover:bg-black',
         kind === 'ghost' && 'border border-line bg-panel hover:border-faint',
         kind === 'danger' && 'border border-line bg-panel text-bad hover:border-bad',
@@ -69,7 +70,7 @@ export function Field({ label, hint, error, children, className, group }: { labe
 }
 
 const inputCls = 'w-full rounded-md border border-line bg-panel px-2.5 py-1.5 text-[15px] outline-none focus:border-accent';
-export const Input = (p: InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(inputCls, p.className)} />;
+export const Input = (p: InputHTMLAttributes<HTMLInputElement> & { ref?: React.Ref<HTMLInputElement> }) => <input {...p} className={cx(inputCls, p.className)} />;
 export const Textarea = (p: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea rows={3} {...p} className={cx(inputCls, p.className)} />;
 export function Select({ options, ...p }: SelectHTMLAttributes<HTMLSelectElement> & { options: { value: string; label: string }[] }) {
   return (

@@ -34,6 +34,8 @@ export default defineConfig({
         // unicode-range slices; only the slices a page needs are downloaded, then cached.
         globPatterns: ['**/*.{js,css,html,svg,png}', '**/*latin*.woff2'],
         globIgnores: ['**/noto-serif-sc-*'],
+        // the conjugation dictionary chunk is ~6 MB raw (~1 MB gzipped)
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => /\.woff2?$/.test(url.pathname),

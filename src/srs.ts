@@ -62,7 +62,7 @@ export interface Queue {
 export async function buildQueue(settings: Settings, now = new Date()): Promise<Queue> {
   const f = scheduler(settings.retention);
   const today = localDate(now);
-  const cards = (await db.card.toArray()).filter((c) => !c.deletedAt && !c.suspended);
+  const cards = (await db.card.toArray()).filter((c) => !c.deletedAt && !c.suspended && c.itemType !== 'conj');
   const logsToday = (await db.reviewLog.where('reviewedAt').aboveOrEqual(new Date(`${today}T00:00:00`).toISOString()).toArray());
   const reviewedToday = logsToday.length;
   const newToday = new Set(logsToday.filter((l) => l.stateBefore === State.New).map((l) => l.cardId)).size;
@@ -123,4 +123,18 @@ export function previewIntervals(c: CardRecord, retention: number, now = new Dat
     [Rating.Good]: label(p[Rating.Good].card.due),
     [Rating.Easy]: label(p[Rating.Easy].card.due),
   } as Record<Grade, string>;
+}
+
+/** Conjugation practice queue: due verb×tense cards first (most overdue first), then new ones up to the daily cap. */
+export async function buildConjQueue(settings: Settings, now = new Date()) {
+  const cards = (await db.card.where('[itemType+itemId]').between(['conj', ''], ['conj', '\uffff']).toArray()).filter((c) => !c.deletedAt && !c.suspended);
+  const today = localDate(now);
+  const ids = new Set(cards.map((c) => c.id));
+  const logsToday = (await db.reviewLog.where('reviewedAt').aboveOrEqual(new Date(`${today}T00:00:00`).toISOString()).toArray()).filter((l) => ids.has(l.cardId));
+  const newToday = new Set(logsToday.filter((l) => l.stateBefore === State.New).map((l) => l.cardId)).size;
+  const due = cards
+    .filter((c) => c.state !== State.New && Date.parse(c.due) <= now.getTime() + (c.state === State.Review ? 0 : 20 * 60000))
+    .sort((a, b) => a.due.localeCompare(b.due));
+  const fresh = cards.filter((c) => c.state === State.New).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(0, Math.max(0, settings.conjNewLimit - newToday));
+  return { due, fresh, total: cards.length, doneToday: logsToday.length };
 }

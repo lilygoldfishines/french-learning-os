@@ -162,7 +162,8 @@ export interface Link extends SystemFields {
   relation: string;
 }
 
-export type ItemType = 'vocab' | 'grammar' | 'expression' | 'sentence' | 'error';
+/** 'conj' cards: itemId = "<verb>|<TENSE>" — practised on the conjugation page, not in the main review. */
+export type ItemType = 'vocab' | 'grammar' | 'expression' | 'sentence' | 'error' | 'conj';
 
 export interface CardRecord extends SystemFields {
   itemType: ItemType;
@@ -256,6 +257,7 @@ export interface Settings {
   weeklyTargetMinutes: number;
   targetLevel: Cefr;
   targetDate: string;
+  conjNewLimit: number;
 }
 
 export interface MetaRow { key: string; value: unknown }
@@ -267,4 +269,5 @@ export const DEFAULT_SETTINGS: Settings = {
   weeklyTargetMinutes: 600,
   targetLevel: 'B2',
   targetDate: '2027-05-31',
+  conjNewLimit: 10,
 };

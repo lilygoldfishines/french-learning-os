@@ -17,6 +17,7 @@ import AssessPage from './pages/Assess';
 import DataPage from './pages/Data';
 import SettingsPage from './pages/Settings';
 import MorePage from './pages/More';
+import ConjugationPage from './pages/Conjugation';
 import { useTimer } from './features/timer';
 
 export const NAV: { group: string; items: { to: string; label: string; soon?: boolean }[] }[] = [
@@ -25,7 +26,7 @@ export const NAV: { group: string; items: { to: string; label: string; soon?: bo
     { to: '/vocab', label: '词汇' }, { to: '/grammar', label: '语法' }, { to: '/expressions', label: '表达' },
     { to: '/sentences', label: '句子' }, { to: '/errors', label: '错误库' },
   ] },
-  { group: '训练', items: [{ to: '#', label: '听 · 说 · 读 · 写', soon: true }, { to: '#', label: 'DELF / DALF', soon: true }] },
+  { group: '训练', items: [{ to: '/conjugation', label: '动词变位' }, { to: '#', label: '听 · 说 · 读 · 写', soon: true }, { to: '#', label: 'DELF / DALF', soon: true }] },
   { group: '沉浸', items: [{ to: '#', label: '生活与行业场景', soon: true }, { to: '#', label: '文化与思想', soon: true }, { to: '#', label: '资源库', soon: true }] },
   { group: '规划与分析', items: [{ to: '/plan', label: '学习计划' }, { to: '/assess', label: '能力评估' }] },
   { group: '工具', items: [{ to: '/data', label: '导入导出 · AI' }, { to: '/settings', label: '设置与备份' }] },
@@ -143,6 +144,7 @@ export default function App() {
                 <Route path="/data" element={<DataPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/more" element={<MorePage />} />
+                <Route path="/conjugation" element={<ConjugationPage />} />
               </Routes>
             </main>
           </div>

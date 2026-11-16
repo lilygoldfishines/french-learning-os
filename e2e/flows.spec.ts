@@ -288,3 +288,53 @@ test('12 · AI fill is hidden without a key', async ({ page }) => {
   await openQuick(page);
   await expect(page.getByRole('dialog', { name: '快速记录' }).getByRole('button', { name: 'AI 补全' })).toHaveCount(0);
 });
+
+test('13 · conjugation: lookup, practice right / wrong, accent keys, wrong answer goes to the error bank', async ({ page }) => {
+  await go(page, '/conjugation?v=prendre');
+  await expect(page.getByText('p.p. pris')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText('prennent').first()).toBeVisible();
+  await expect(page.getByText('第三组（不规则）')).toBeVisible();
+
+  // practise only être · présent so answers are predictable
+  for (const t of ['复合过去时', '未完成过去时', '简单将来时']) await page.getByRole('button', { name: t, exact: true }).click();
+  await page.getByLabel('添加一个动词').fill('être');
+  await page.getByRole('button', { name: '添加', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '新增 1 张变位卡' })).toBeVisible();
+  await go(page, '/');
+  await page.getByText('动词变位待练').click();
+  const forms: Record<string, string> = { je: 'je suis', tu: 'tu es', 'il/elle': 'il est', nous: 'nous sommes', vous: 'vous êtes', 'ils/elles': 'ils sont' };
+  const personNow = async () => { await expect(page.getByLabel('变位答案')).toHaveValue(''); return (await page.locator('[data-person]').getAttribute('data-person')) ?? ''; };
+
+  let p = await personNow();
+  await page.getByLabel('变位答案').fill(forms[p]);
+  await page.getByRole('button', { name: '检查' }).click();
+  await expect(page.getByRole('status').filter({ hasText: '正确' })).toBeVisible();
+  await page.getByRole('button', { name: '下一个' }).click();
+
+  // the same card comes back in learning; give a wrong answer and log it
+  await expect(page.getByLabel('变位答案')).toBeVisible();
+  p = await personNow();
+  await page.getByLabel('变位答案').fill('xyz');
+  await page.getByRole('button', { name: '检查' }).click();
+  await expect(page.getByRole('status').filter({ hasText: '不对' })).toBeVisible();
+  await page.getByRole('button', { name: '记入错误库' }).click();
+  await expect(page.getByRole('button', { name: '已记入错误库' })).toBeVisible();
+  await page.getByRole('button', { name: '下一个' }).click();
+
+  // accent key row inserts characters; missing accent is "accent", not wrong
+  p = await personNow();
+  if (p === 'vous') {
+    await page.getByLabel('变位答案').fill('vous ');
+    await page.getByRole('button', { name: 'ê', exact: true }).click();
+    await page.getByLabel('变位答案').press('End');
+    await page.getByLabel('变位答案').pressSequentially('tes');
+    await expect(page.getByLabel('变位答案')).toHaveValue('vous êtes');
+  } else {
+    await page.getByLabel('变位答案').fill(p === 'nous' ? 'nous sommes' : forms[p]);
+  }
+  await page.getByRole('button', { name: '检查' }).click();
+  await expect(page.getByRole('status').filter({ hasText: '正确' })).toBeVisible();
+
+  await go(page, '/errors');
+  await expect(page.getByText('动词变位 · 1 次')).toBeVisible();
+});

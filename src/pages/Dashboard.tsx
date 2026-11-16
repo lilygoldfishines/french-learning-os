@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, db } from '../db/db';
 import { useSettings } from '../db/bootstrap';
-import { buildQueue } from '../srs';
+import { buildConjQueue, buildQueue } from '../srs';
 import { ACTIVITY_LABEL, CEFR_LEVELS, ERROR_TYPE_LABEL, LEARN_STATUS, LEARN_STATUS_LABEL, SKILLS, SKILL_LABEL, type Assessment, type ErrorEntry, type Goal, type Grammar, type Session, type TimeBlock, type Vocab } from '../db/types';
 import { fmtLevel, latestBySkill, levelIndex, suggestions, weekMinutes, weeklyHistory } from '../features/stats';
 import { Badge, Button, Empty, PageHeader, Progress, Section, Stat } from '../ui/kit';
@@ -50,7 +50,8 @@ export default function Dashboard() {
     const matureLogs = logs.filter((l) => l.stateBefore === 2);
     return { assess, errors, vocab, grammar, sessions, blocks, goals, logs, matureLogs };
   }, []);
-  const queue = useLiveQuery(() => buildQueue(settings), [settings.dailyNewLimit, settings.dailyReviewLimit, settings.retention]);
+  const queue = useLiveQuery(() => buildQueue(settings), [settings]);
+  const conj = useLiveQuery(() => buildConjQueue(settings), [settings]);
   if (!data) return null;
 
   const latest = latestBySkill(data.assess);
@@ -92,6 +93,7 @@ export default function Dashboard() {
             <div className="space-y-2">
               <Stat label="待复习" value={queue.due.length} sub={queue.overdueDeferred ? `另有 ${queue.overdueDeferred} 张顺延到之后几天` : undefined} />
               <Stat label="可学新卡" value={queue.fresh.length} sub={`今天已复习 ${queue.reviewedToday} 次`} />
+              {!!conj?.total && <Link to="/conjugation" className="block"><Stat label="动词变位待练" value={conj.due.length + conj.fresh.length} sub="去练习 →" /></Link>}
             </div>
           ) : null}
         </Section>

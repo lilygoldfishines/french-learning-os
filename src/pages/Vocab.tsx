@@ -80,6 +80,7 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
         <Field group label="相关词汇"><TagsInput label="相关词汇" value={v.related} onChange={(x) => set('related', x)} /></Field>
         <Field group label="常见搭配"><TagsInput label="常见搭配" value={v.collocations} onChange={(x) => set('collocations', x)} /></Field>
         <Field group label="常见介词"><TagsInput label="常见介词" value={v.prepositions} onChange={(x) => set('prepositions', x)} placeholder="à, de, sur…" /></Field>
+        {v.pos === 'verb' && v.lemma.trim() && <div className="flex items-end"><a className="text-sm text-accent underline" href={`#/conjugation?v=${encodeURIComponent(v.lemma.trim())}`}>查看完整变位表 →</a></div>}
         {v.pos === 'verb' && <Field label="动词变位要点"><Input value={v.conjugation ?? ''} onChange={(e) => set('conjugation', e.target.value)} placeholder="如：3e groupe, pp. pris" /></Field>}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
