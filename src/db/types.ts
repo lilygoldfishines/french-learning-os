@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 // Core types for French Learning OS. Every stored record carries SystemFields.
 
 export interface SystemFields {
@@ -14,21 +15,21 @@ export type Cefr = (typeof CEFR_LEVELS)[number];
 export const SKILLS = ['listening', 'speaking', 'reading', 'writing'] as const;
 export type Skill = (typeof SKILLS)[number];
 export const SKILL_LABEL: Record<Skill, string> = {
-  listening: '听力',
-  speaking: '口语',
-  reading: '阅读',
-  writing: '写作',
+  listening: tr('听力'),
+  speaking: tr('口语'),
+  reading: tr('阅读'),
+  writing: tr('写作'),
 };
 
 export const GENDERS = ['m', 'f', 'm-f', 'none'] as const;
 export type Gender = (typeof GENDERS)[number];
-export const GENDER_LABEL: Record<Gender, string> = { m: '阳性 m.', f: '阴性 f.', 'm-f': '阴阳同形', none: '—' };
+export const GENDER_LABEL: Record<Gender, string> = { m: tr('阳性 m.'), f: tr('阴性 f.'), 'm-f': tr('阴阳同形'), none: '—' };
 
 export const POS = ['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction', 'pronoun', 'determiner', 'interjection', 'phrase'] as const;
 export type Pos = (typeof POS)[number];
 export const POS_LABEL: Record<Pos, string> = {
-  noun: '名词 n.', verb: '动词 v.', adjective: '形容词 adj.', adverb: '副词 adv.', preposition: '介词 prép.',
-  conjunction: '连词 conj.', pronoun: '代词 pron.', determiner: '限定词 dét.', interjection: '感叹词 interj.', phrase: '短语 loc.',
+  noun: tr('名词 n.'), verb: tr('动词 v.'), adjective: tr('形容词 adj.'), adverb: tr('副词 adv.'), preposition: tr('介词 prép.'),
+  conjunction: tr('连词 conj.'), pronoun: tr('代词 pron.'), determiner: tr('限定词 dét.'), interjection: tr('感叹词 interj.'), phrase: tr('短语 loc.'),
 };
 
 export const VOCAB_TOPICS = [
@@ -36,14 +37,14 @@ export const VOCAB_TOPICS = [
   'art', 'society', 'academic', 'literature', 'abstract', 'news', 'idioms',
 ] as const;
 export const TOPIC_LABEL: Record<string, string> = {
-  daily: '日常生活', food: '食物与餐饮', transport: '交通', health: '医疗', housing: '住房', admin: '法国行政',
-  finance: '金融', relationships: '人际关系', work: '工作与商务', cinema: '电影制作', art: '艺术与文化',
-  society: '社会与政治', academic: '学术法语', literature: '文学与哲学', abstract: '抽象概念', news: '新闻与评论', idioms: '习语与固定表达',
+  daily: tr('日常生活'), food: tr('食物与餐饮'), transport: tr('交通'), health: tr('医疗'), housing: tr('住房'), admin: tr('法国行政'),
+  finance: tr('金融'), relationships: tr('人际关系'), work: tr('工作与商务'), cinema: tr('电影制作'), art: tr('艺术与文化'),
+  society: tr('社会与政治'), academic: tr('学术法语'), literature: tr('文学与哲学'), abstract: tr('抽象概念'), news: tr('新闻与评论'), idioms: tr('习语与固定表达'),
 };
 
 export const LEARN_STATUS = ['new', 'learning', 'familiar', 'mastered'] as const;
 export type LearnStatus = (typeof LEARN_STATUS)[number];
-export const LEARN_STATUS_LABEL: Record<LearnStatus, string> = { new: '新词', learning: '学习中', familiar: '熟悉', mastered: '掌握' };
+export const LEARN_STATUS_LABEL: Record<LearnStatus, string> = { new: tr('新词'), learning: tr('学习中'), familiar: tr('熟悉'), mastered: tr('掌握') };
 
 export interface Example { fr: string; en?: string; zh?: string }
 
@@ -89,21 +90,21 @@ export interface Grammar extends SystemFields {
 
 export const REGISTERS = ['courant', 'soutenu', 'familier', 'argotique', 'professionnel', 'littéraire'] as const;
 export const REGISTER_LABEL: Record<string, string> = {
-  courant: '标准 courant', soutenu: '正式 soutenu', familier: '口语 familier', argotique: '俚语 argotique',
-  professionnel: '专业 professionnel', littéraire: '文学 littéraire',
+  courant: tr('标准 courant'), soutenu: tr('正式 soutenu'), familier: tr('口语 familier'), argotique: tr('俚语 argotique'),
+  professionnel: tr('专业 professionnel'), littéraire: tr('文学 littéraire'),
 };
 export const NATURALNESS = ['correct', 'correct-unnatural', 'natural', 'formal-ok', 'informal-ok', 'inappropriate'] as const;
 export const NATURALNESS_LABEL: Record<string, string> = {
-  correct: '语法正确', 'correct-unnatural': '正确但不自然', natural: '自然地道', 'formal-ok': '适合正式语境',
-  'informal-ok': '适合非正式语境', inappropriate: '当前语境不适用',
+  correct: tr('语法正确'), 'correct-unnatural': tr('正确但不自然'), natural: tr('自然地道'), 'formal-ok': tr('适合正式语境'),
+  'informal-ok': tr('适合非正式语境'), inappropriate: tr('当前语境不适用'),
 };
 export const EXPRESSION_CATEGORIES = [
   'daily', 'spoken', 'formal', 'informal', 'french-local', 'idiom', 'collocation', 'pattern', 'connector', 'logic', 'professional', 'literary',
 ] as const;
 export const EXPR_CAT_LABEL: Record<string, string> = {
-  daily: '日常表达', spoken: '口语表达', formal: '正式表达', informal: '非正式表达', 'french-local': '法国本土表达',
-  idiom: '习语', collocation: '固定搭配', pattern: '常见句型', connector: '论述连接词', logic: '逻辑表达',
-  professional: '专业表达', literary: '文学性表达',
+  daily: tr('日常表达'), spoken: tr('口语表达'), formal: tr('正式表达'), informal: tr('非正式表达'), 'french-local': tr('法国本土表达'),
+  idiom: tr('习语'), collocation: tr('固定搭配'), pattern: tr('常见句型'), connector: tr('论述连接词'), logic: tr('逻辑表达'),
+  professional: tr('专业表达'), literary: tr('文学性表达'),
 };
 
 export interface Expression extends SystemFields {
@@ -133,13 +134,13 @@ export const ERROR_TYPES = [
 ] as const;
 export type ErrorType = (typeof ERROR_TYPES)[number];
 export const ERROR_TYPE_LABEL: Record<ErrorType, string> = {
-  gender: '阴阳性', article: '冠词', conjugation: '动词变位', agreement: '主谓/性数一致', preposition: '介词',
-  'word-choice': '词汇误用', structure: '句子结构', 'word-order': '词序', spelling: '拼写', pronunciation: '发音',
-  unnatural: '不自然表达', register: '语体错误',
+  gender: tr('阴阳性'), article: tr('冠词'), conjugation: tr('动词变位'), agreement: tr('主谓/性数一致'), preposition: tr('介词'),
+  'word-choice': tr('词汇误用'), structure: tr('句子结构'), 'word-order': tr('词序'), spelling: tr('拼写'), pronunciation: tr('发音'),
+  unnatural: tr('不自然表达'), register: tr('语体错误'),
 };
 export const ERROR_STATUS = ['open', 'practicing', 'verified'] as const;
 export type ErrorStatus = (typeof ERROR_STATUS)[number];
-export const ERROR_STATUS_LABEL: Record<ErrorStatus, string> = { open: '未解决', practicing: '练习中', verified: '已验证解决' };
+export const ERROR_STATUS_LABEL: Record<ErrorStatus, string> = { open: tr('未解决'), practicing: tr('练习中'), verified: tr('已验证解决') };
 
 export interface Occurrence { date: string; source?: string }
 export interface ErrorEntry extends SystemFields {
@@ -204,7 +205,7 @@ export interface Goal extends SystemFields {
 export const ACTIVITY_TYPES = ['active', 'passive', 'review', 'interaction', 'exam', 'culture'] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 export const ACTIVITY_LABEL: Record<ActivityType, string> = {
-  active: '主动学习', passive: '被动输入', review: '间隔复习', interaction: '实际交流', exam: '考试准备', culture: '文化沉浸',
+  active: tr('主动学习'), passive: tr('被动输入'), review: tr('间隔复习'), interaction: tr('实际交流'), exam: tr('考试准备'), culture: tr('文化沉浸'),
 };
 
 export interface TimeBlock extends SystemFields {
@@ -227,8 +228,8 @@ export interface Session extends SystemFields {
 
 export const EVIDENCE_TYPES = ['writing-sample', 'speaking-recording', 'mock-exam', 'official-exam', 'teacher', 'self'] as const;
 export const EVIDENCE_LABEL: Record<string, string> = {
-  'writing-sample': '写作样本', 'speaking-recording': '口语录音', 'mock-exam': '模拟考试', 'official-exam': '正式考试',
-  teacher: '老师评估', self: '自我评估（证据较弱）',
+  'writing-sample': tr('写作样本'), 'speaking-recording': tr('口语录音'), 'mock-exam': tr('模拟考试'), 'official-exam': tr('正式考试'),
+  teacher: tr('老师评估'), self: tr('自我评估（证据较弱）'),
 };
 
 export interface Assessment extends SystemFields {

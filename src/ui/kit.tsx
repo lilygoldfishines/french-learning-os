@@ -1,5 +1,6 @@
 import type React from 'react';
 import { createContext, useCallback, useContext, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { tr, trf } from '../i18n';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -93,7 +94,7 @@ export function TagsInput({ value, onChange, placeholder, label }: { value: stri
       {value.map((t) => (
         <span key={t} className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-sm">
           {t}
-          <button type="button" aria-label={`删除 ${t}`} className="text-muted" onClick={() => onChange(value.filter((x) => x !== t))}>×</button>
+          <button type="button" aria-label={trf('删除 {0}', t)} className="text-muted" onClick={() => onChange(value.filter((x) => x !== t))}>×</button>
         </span>
       ))}
       <input
@@ -149,7 +150,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       <div role="dialog" aria-label={title} className={cx('max-h-[92vh] w-full overflow-y-auto rounded-t-xl bg-paper p-5 shadow-xl md:rounded-xl', wide ? 'md:max-w-3xl' : 'md:max-w-lg')}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-xl">{title}</h2>
-          <button aria-label="关闭" className="text-2xl leading-none text-muted" onClick={onClose}>×</button>
+          <button aria-label={tr('关闭')} className="text-2xl leading-none text-muted" onClick={onClose}>×</button>
         </div>
         {children}
       </div>

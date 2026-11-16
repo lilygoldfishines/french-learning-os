@@ -6,9 +6,9 @@ import path_ from 'node:path';
 const isMobile = (p: Page) => (p.viewportSize()?.width ?? 1000) < 768;
 
 async function openQuick(page: Page) {
-  if (isMobile(page)) await page.getByRole('button', { name: '快速记录' }).click();
+  if (isMobile(page)) await page.getByRole('button', { name: /^(快速记录|Quick add)$/ }).click();
   else await page.keyboard.press('n');
-  await expect(page.getByRole('dialog', { name: '快速记录' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /^(快速记录|Quick add)$/ })).toBeVisible();
 }
 async function go(page: Page, hash: string) {
   await page.goto(`./#${hash}`);
@@ -337,4 +337,26 @@ test('13 · conjugation: lookup, practice right / wrong, accent keys, wrong answ
 
   await go(page, '/errors');
   await expect(page.getByText('动词变位 · 1 次')).toBeVisible();
+});
+
+test('14 · English interface: switch language, no Chinese left on any page, switch back', async ({ page }) => {
+  await go(page, '/settings');
+  await page.getByRole('main').getByRole('button', { name: 'English' }).click();
+  await expect(page.getByRole('heading', { name: 'Settings & backup' })).toBeVisible();
+  const CJK = /[㐀-鿿]/;
+  // seed one word with a Chinese definition: user content may stay Chinese, interface text may not
+  for (const h of ['/', '/review', '/vocab', '/grammar', '/expressions', '/sentences', '/errors', '/conjugation', '/plan', '/assess', '/data', '/settings', '/more']) {
+    await go(page, h);
+    await page.waitForTimeout(h === '/conjugation' ? 1500 : 200);
+    const text = await page.evaluate(() => document.body.innerText);
+    const lines = text.split('\n').filter((l) => /[㐀-鿿]/.test(l) && !/^(中文|界面语言|只改变界面文字)/.test(l));
+    expect(lines, `Chinese left on ${h}`).toEqual([]);
+    expect(CJK.test(await page.title())).toBe(false);
+  }
+  await openQuick(page);
+  await expect(page.getByRole('dialog', { name: 'Quick add' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await go(page, '/settings');
+  await page.getByRole('main').getByRole('button', { name: '中文' }).click();
+  await expect(page.getByRole('heading', { name: '设置与备份' })).toBeVisible();
 });

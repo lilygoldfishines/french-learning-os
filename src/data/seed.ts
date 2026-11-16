@@ -1,4 +1,5 @@
 import type { Cefr, Skill } from '../db/types';
+import { lang } from '../i18n';
 
 /** Starter grammar catalogue (names + level + category). Explanations are filled in later by the learner / AI import. */
 export const GRAMMAR_SEED: { name: string; cefr: Cefr; category: string }[] = [
@@ -73,7 +74,7 @@ export const GRAMMAR_SEED: { name: string; cefr: Cefr; category: string }[] = [
  * Short can-do descriptors per level and skill, written for this app as a practical summary of the CEFR scale.
  * They are a checklist aid, not the official Council of Europe wording.
  */
-export const DESCRIPTORS: Record<Cefr, Record<Skill, string[]>> = {
+const DESCRIPTORS_ZH: Record<Cefr, Record<Skill, string[]>> = {
   A1: {
     listening: ['听懂缓慢清晰的自我介绍和简单指示', '听懂数字、价格、时间'],
     speaking: ['用简单句介绍自己和他人', '在对方配合下进行简单问答'],
@@ -111,3 +112,44 @@ export const DESCRIPTORS: Record<Cefr, Record<Skill, string[]>> = {
     writing: ['写清晰流畅、文体得当的复杂文本', '写评论和文学作品评析'],
   },
 };
+
+const DESCRIPTORS_EN: Record<Cefr, Record<Skill, string[]>> = {
+  A1: {
+    listening: ['Understand slow, clear self-introductions and simple instructions', 'Catch numbers, prices and times'],
+    speaking: ['Introduce myself and others in simple sentences', 'Handle simple Q&A when the other person helps'],
+    reading: ['Read signs, forms and very short messages', 'Understand simple sentences on familiar topics'],
+    writing: ['Fill in a form with personal details', 'Write a short postcard or note'],
+  },
+  A2: {
+    listening: ['Follow short conversations on everyday topics', 'Get the gist of short announcements'],
+    speaking: ['Manage shopping, appointments and asking the way', 'Describe experiences and plans with simple connectors'],
+    reading: ['Read short personal letters and everyday texts', 'Find specific information in ads, menus and timetables'],
+    writing: ['Write short personal messages and thank-you notes', 'Describe events with simple connectors'],
+  },
+  B1: {
+    listening: ['Follow the main points of standard speech at normal speed on familiar topics', 'Get the main information from radio and video on current affairs or interests'],
+    speaking: ['Handle most situations in travel and daily life', 'Narrate experiences and ambitions and briefly give reasons'],
+    reading: ['Understand common texts related to life and work', 'Understand descriptions of events and feelings in personal letters'],
+    writing: ['Write connected simple texts on familiar topics', 'Write letters describing experiences and feelings'],
+  },
+  B2: {
+    listening: ['Follow extended speech and complex lines of argument', 'Understand most TV news, current-affairs shows and films in standard language'],
+    speaking: ['Interact naturally with native speakers without strain on either side', 'Present clear views on a wide range of topics and weigh pros and cons'],
+    reading: ['Read articles and reports where writers take a stance', 'Read contemporary literary prose'],
+    writing: ['Write a clear, detailed argument for or against a view', 'Write letters explaining the significance of events and experiences'],
+  },
+  C1: {
+    listening: ['Understand long speech even when its structure and links are implicit', 'Understand TV and films without much effort'],
+    speaking: ['Express myself fluently and spontaneously, rarely searching for words', 'Use the language flexibly in social and professional settings'],
+    reading: ['Understand long, complex factual and literary texts and their differences in style', 'Read specialised articles and long technical instructions'],
+    writing: ['Write well-structured texts on complex subjects, highlighting key points', 'Adapt my style to the reader'],
+  },
+  C2: {
+    listening: ['Understand any kind of spoken language, including fast native speech', 'Catch accents and implicit meaning'],
+    speaking: ['Convey fine shades of meaning precisely', 'Use idioms and colloquialisms with ease'],
+    reading: ['Read virtually all forms of writing with ease, including abstract and structurally complex texts'],
+    writing: ['Write clear, fluent, stylistically appropriate complex texts', 'Write reviews and critical appreciations of literary works'],
+  },
+};
+
+export const DESCRIPTORS = lang === 'en' ? DESCRIPTORS_EN : DESCRIPTORS_ZH;

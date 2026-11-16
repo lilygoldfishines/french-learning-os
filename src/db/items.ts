@@ -4,6 +4,7 @@ import {
   deriveErrorStatus, findExpressionDuplicate, findSimilarError, findTextDuplicate, findVocabDuplicate, validateVocab,
 } from './rules';
 import type { ErrorEntry, Expression, Grammar, Sentence, Vocab, SystemFields } from './types';
+import { tr, trf } from '../i18n';
 
 type New<T> = Omit<T, keyof SystemFields>;
 
@@ -15,9 +16,11 @@ export const emptyVocab = (): New<Vocab> => ({
 
 export class ValidationError extends Error {
   problems: string[];
-  constructor(problems: string[]) {
-    super(problems.join('；'));
+  code?: 'possible-dup';
+  constructor(problems: string[], code?: 'possible-dup') {
+    super(problems.join(tr('；')));
     this.problems = problems;
+    this.code = code;
   }
 }
 
@@ -25,8 +28,8 @@ export async function addVocab(v: New<Vocab>, opts: { allowPossibleDup?: boolean
   const problems = validateVocab(v);
   if (problems.length) throw new ValidationError(problems);
   const dup = findVocabDuplicate(v, await all<Vocab>('vocab'));
-  if (dup?.kind === 'exact') throw new ValidationError([`已存在相同词条：${dup.existing.lemma}`]);
-  if (dup?.kind === 'possible' && !opts.allowPossibleDup) throw new ValidationError([`可能重复：${dup.existing.lemma}（请确认后再保存）`]);
+  if (dup?.kind === 'exact') throw new ValidationError([trf('已存在相同词条：{0}', dup.existing.lemma)]);
+  if (dup?.kind === 'possible' && !opts.allowPossibleDup) throw new ValidationError([trf('可能重复：{0}（请确认后再保存）', dup.existing.lemma)], 'possible-dup');
   const rec = await insert('vocab', v);
   await ensureCard('vocab', rec.id);
   return rec;
@@ -41,27 +44,27 @@ export async function saveVocab(id: string, v: Partial<Vocab>) {
 }
 
 export async function addExpression(e: New<Expression>) {
-  if (!e.text.trim()) throw new ValidationError(['请填写表达']);
+  if (!e.text.trim()) throw new ValidationError([tr('请填写表达')]);
   const dup = findExpressionDuplicate(e, await all<Expression>('expression'));
-  if (dup) throw new ValidationError([`已存在相同表达：${dup.existing.text}`]);
+  if (dup) throw new ValidationError([trf('已存在相同表达：{0}', dup.existing.text)]);
   const rec = await insert('expression', e);
   await ensureCard('expression', rec.id);
   return rec;
 }
 
 export async function addSentence(s: New<Sentence>) {
-  if (!s.fr.trim()) throw new ValidationError(['请填写法语句子']);
+  if (!s.fr.trim()) throw new ValidationError([tr('请填写法语句子')]);
   const dup = findTextDuplicate(s.fr, await all<Sentence>('sentence'), (x) => x.fr);
-  if (dup) throw new ValidationError(['已存在相同句子']);
+  if (dup) throw new ValidationError([tr('已存在相同句子')]);
   const rec = await insert('sentence', s);
   await ensureCard('sentence', rec.id);
   return rec;
 }
 
 export async function addGrammar(g: New<Grammar>, withCard = false) {
-  if (!g.name.trim()) throw new ValidationError(['请填写语法名称']);
+  if (!g.name.trim()) throw new ValidationError([tr('请填写语法名称')]);
   const dup = findTextDuplicate(g.name, await all<Grammar>('grammar'), (x) => x.name);
-  if (dup) throw new ValidationError([`已存在：${dup.existing.name}`]);
+  if (dup) throw new ValidationError([trf('已存在：{0}', dup.existing.name)]);
   const rec = await insert('grammar', g);
   if (withCard) await ensureCard('grammar', rec.id);
   return rec;
@@ -75,7 +78,7 @@ export type NewError = Pick<ErrorEntry, 'original' | 'corrected' | 'errorType'> 
  * and merge=true, a new occurrence is added to it instead of creating a new row.
  */
 export async function logError(e: NewError, opts: { merge?: boolean } = {}) {
-  if (!e.original.trim() || !e.corrected.trim()) throw new ValidationError(['请填写原句和修正句']);
+  if (!e.original.trim() || !e.corrected.trim()) throw new ValidationError([tr('请填写原句和修正句')]);
   const occ = { date: e.date ?? nowIso(), source: e.source };
   if (opts.merge) {
     const similar = findSimilarError(e, await all<ErrorEntry>('error'));

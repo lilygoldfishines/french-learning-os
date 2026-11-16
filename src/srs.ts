@@ -2,6 +2,7 @@ import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card, t
 import { db, nowIso, stamp, uid } from './db/db';
 import type { CardRecord, ItemType, Settings } from './db/types';
 import { localDate } from './db/rules';
+import { trf } from './i18n';
 
 export { Rating, State };
 
@@ -110,12 +111,12 @@ export function previewIntervals(c: CardRecord, retention: number, now = new Dat
   const p = f.repeat(toFsrs(c), now);
   const label = (d: Date) => {
     const mins = (d.getTime() - now.getTime()) / 60000;
-    if (mins < 60) return `${Math.max(1, Math.round(mins))} 分钟`;
-    if (mins < 1440) return `${Math.round(mins / 60)} 小时`;
+    if (mins < 60) return trf('{0} 分钟', Math.max(1, Math.round(mins)));
+    if (mins < 1440) return trf('{0} 小时', Math.round(mins / 60));
     const days = mins / 1440;
-    if (days < 30) return `${Math.round(days)} 天`;
-    if (days < 365) return `${Math.round(days / 30)} 个月`;
-    return `${(days / 365).toFixed(1)} 年`;
+    if (days < 30) return trf('{0} 天', Math.round(days));
+    if (days < 365) return trf('{0} 个月', Math.round(days / 30));
+    return trf('{0} 年', (days / 365).toFixed(1));
   };
   return {
     [Rating.Again]: label(p[Rating.Again].card.due),

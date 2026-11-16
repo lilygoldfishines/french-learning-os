@@ -1,4 +1,5 @@
 import type { ErrorEntry, ErrorStatus, Expression, Vocab } from './types';
+import { tr } from '../i18n';
 
 const ARTICLE_RE = /^(le|la|les|un|une|des|du|de la|de l'|l'|l’)\s*/i;
 
@@ -30,9 +31,9 @@ export function articleToGender(article?: string): 'm' | 'f' | undefined {
 /** Returns a list of human-readable problems; empty = valid. */
 export function validateVocab(v: Partial<Vocab>): string[] {
   const errs: string[] = [];
-  if (!v.lemma || !v.lemma.trim()) errs.push('请填写法语词条');
-  if (!v.pos) errs.push('请选择词性');
-  if (v.pos === 'noun' && (!v.gender || v.gender === 'none')) errs.push('名词必须标注阴阳性');
+  if (!v.lemma || !v.lemma.trim()) errs.push(tr('请填写法语词条'));
+  if (!v.pos) errs.push(tr('请选择词性'));
+  if (v.pos === 'noun' && (!v.gender || v.gender === 'none')) errs.push(tr('名词必须标注阴阳性'));
   return errs;
 }
 

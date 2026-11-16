@@ -7,8 +7,9 @@ import { ACTIVITY_LABEL, CEFR_LEVELS, ERROR_TYPE_LABEL, LEARN_STATUS, LEARN_STAT
 import { fmtLevel, latestBySkill, levelIndex, suggestions, weekMinutes, weeklyHistory } from '../features/stats';
 import { Badge, Button, Empty, PageHeader, Progress, Section, Stat } from '../ui/kit';
 import { weekStart } from '../db/rules';
+import { tr, trf } from '../i18n';
 
-const h = (m: number) => (m >= 60 ? `${(m / 60).toFixed(1)} 小时` : `${m} 分钟`);
+const h = (m: number) => (m >= 60 ? trf('{0} 小时', (m / 60).toFixed(1)) : trf('{0} 分钟', m));
 
 function AbilityGrid({ latest, target }: { latest: Partial<Record<string, Assessment>>; target: string }) {
   const t = CEFR_LEVELS.indexOf(target as never);
@@ -18,18 +19,18 @@ function AbilityGrid({ latest, target }: { latest: Partial<Record<string, Assess
         const a = latest[s];
         const idx = a ? levelIndex(a) : -1;
         return (
-          <div key={s} className="grid grid-cols-[3rem_1fr_3.5rem] items-center gap-3">
+          <div key={s} className="grid grid-cols-[4.75rem_1fr_5.5rem] items-center gap-3">
             <span className="text-sm">{SKILL_LABEL[s]}</span>
-            <div className="relative grid grid-cols-6 gap-px" aria-label={`${SKILL_LABEL[s]} ${a ? fmtLevel(a) : '未评估'}`}>
+            <div className="relative grid grid-cols-6 gap-px" aria-label={`${SKILL_LABEL[s]} ${a ? fmtLevel(a) : tr('未评估')}`}>
               {CEFR_LEVELS.map((l, i) => (
                 <div key={l} className={`h-5 ${i <= Math.floor(idx) ? 'bg-accent' : 'bg-line'} ${i === t ? 'outline outline-1 outline-ink' : ''}`} title={l} />
               ))}
             </div>
-            <span className="text-right font-serif">{a ? fmtLevel(a) : <span className="text-xs text-faint">未评估</span>}</span>
+            <span className="text-right font-serif whitespace-nowrap">{a ? fmtLevel(a) : <span className="text-xs text-faint">{tr('未评估')}</span>}</span>
           </div>
         );
       })}
-      <div className="grid grid-cols-[3rem_1fr_3.5rem] gap-3 text-[10px] text-faint">
+      <div className="grid grid-cols-[4.75rem_1fr_5.5rem] gap-3 text-[10px] text-faint">
         <span />
         <div className="grid grid-cols-6">{CEFR_LEVELS.map((l) => <span key={l} className="text-center">{l}</span>)}</div>
         <span />
@@ -75,35 +76,35 @@ export default function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="控制台"
+        title={tr('控制台')}
         eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        sub={`目标：${settings.targetLevel}，${settings.targetDate} 前 · 本周从 ${ws} 开始`}
-        actions={<Link to="/review"><Button kind="primary">复习 {dueCount > 0 ? `· ${dueCount}` : ''}</Button></Link>}
+        sub={trf('目标：{0}，{1} 前 · 本周从 {2} 开始', settings.targetLevel, settings.targetDate, ws)}
+        actions={<Link to="/review"><Button kind="primary">{tr('复习')} {dueCount > 0 ? `· ${dueCount}` : ''}</Button></Link>}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
         {/* LAYER 3: proven ability */}
-        <Section title="能力 · 经评估证明" className="md:col-span-2" aside={<Link to="/assess" className="text-xs text-accent">记录评估</Link>}>
+        <Section title={tr('能力 · 经评估证明')} className="md:col-span-2" aside={<Link to="/assess" className="text-xs text-accent">{tr('记录评估')}</Link>}>
           <AbilityGrid latest={latest} target={settings.targetLevel} />
-          <p className="mt-3 text-xs text-faint">等级只来自带证据的评估记录，和学习时长、复习数量无关。黑框 = 目标等级。</p>
+          <p className="mt-3 text-xs text-faint">{tr('等级只来自带证据的评估记录，和学习时长、复习数量无关。黑框 = 目标等级。')}</p>
         </Section>
 
-        <Section title="今天的复习">
+        <Section title={tr('今天的复习')}>
           {queue ? (
             <div className="space-y-2">
-              <Stat label="待复习" value={queue.due.length} sub={queue.overdueDeferred ? `另有 ${queue.overdueDeferred} 张顺延到之后几天` : undefined} />
-              <Stat label="可学新卡" value={queue.fresh.length} sub={`今天已复习 ${queue.reviewedToday} 次`} />
-              {!!conj?.total && <Link to="/conjugation" className="block"><Stat label="动词变位待练" value={conj.due.length + conj.fresh.length} sub="去练习 →" /></Link>}
+              <Stat label={tr('待复习')} value={queue.due.length} sub={queue.overdueDeferred ? trf('另有 {0} 张顺延到之后几天', queue.overdueDeferred) : undefined} />
+              <Stat label={tr('可学新卡')} value={queue.fresh.length} sub={trf('今天已复习 {0} 次', queue.reviewedToday)} />
+              {!!conj?.total && <Link to="/conjugation" className="block"><Stat label={tr('动词变位待练')} value={conj.due.length + conj.fresh.length} sub={tr('去练习 →')} /></Link>}
             </div>
           ) : null}
         </Section>
 
         {/* LAYER 1 + 2: plan vs actual activity */}
-        <Section title="本周 · 计划与实际活动" className="md:col-span-2" aside={<Link to="/plan" className="text-xs text-accent">调整计划</Link>}>
+        <Section title={tr('本周 · 计划与实际活动')} className="md:col-span-2" aside={<Link to="/plan" className="text-xs text-accent">{tr('调整计划')}</Link>}>
           <div className="grid grid-cols-3 gap-4">
-            <Stat label="目标" value={h(settings.weeklyTargetMinutes)} />
-            <Stat label="已排时间块" value={h(week.planned)} />
-            <Stat label="实际学习" value={h(week.actual)} />
+            <Stat label={tr('目标')} value={h(settings.weeklyTargetMinutes)} />
+            <Stat label={tr('已排时间块')} value={h(week.planned)} />
+            <Stat label={tr('实际学习')} value={h(week.actual)} />
           </div>
           <div className="mt-3"><Progress value={week.actual} max={settings.weeklyTargetMinutes} /></div>
           {Object.keys(week.byActivity).length > 0 && (
@@ -112,10 +113,10 @@ export default function Dashboard() {
             </div>
           )}
           <div className="mt-4">
-            <div className="mb-1 text-xs text-muted">近 8 周学习时间</div>
+            <div className="mb-1 text-xs text-muted">{tr('近 8 周学习时间')}</div>
             <div className="flex h-16 items-end gap-1">
               {hist.map((w) => (
-                <div key={w.ws} className="flex-1" title={`${w.ws}：${h(w.minutes)}`}>
+                <div key={w.ws} className="flex-1" title={trf('{0}：{1}', w.ws, h(w.minutes))}>
                   <div className={`${w.ws === ws ? 'bg-accent' : 'bg-faint/60'}`} style={{ height: `${(w.minutes / maxHist) * 64}px` }} />
                 </div>
               ))}
@@ -123,8 +124,8 @@ export default function Dashboard() {
           </div>
         </Section>
 
-        <Section title="目标">
-          {[['长期', longGoals], [`本月 ${month}`, monthGoals], ['本周', weekGoals]].map(([label, list]) => (
+        <Section title={tr('目标')}>
+          {[[tr('长期'), longGoals], [trf('本月 {0}', month), monthGoals], [tr('本周'), weekGoals]].map(([label, list]) => (
             <div key={label as string} className="mb-2">
               <div className="text-xs text-muted">{label as string}</div>
               {(list as Goal[]).length ? (list as Goal[]).map((g) => <div key={g.id} className={`text-sm ${g.done ? 'text-faint line-through' : ''}`}>{g.title}</div>) : <div className="text-sm text-faint">—</div>}
@@ -132,45 +133,45 @@ export default function Dashboard() {
           ))}
         </Section>
 
-        <Section title="下一步重点">
+        <Section title={tr('下一步重点')}>
           {sugg.length ? (
             <ul className="space-y-2 text-sm">{sugg.slice(0, 5).map((s) => <li key={s.text}><div>{s.text}</div><div className="text-xs text-muted">{s.why}</div></li>)}</ul>
-          ) : <p className="text-sm text-muted">暂无建议。</p>}
+          ) : <p className="text-sm text-muted">{tr('暂无建议。')}</p>}
         </Section>
 
-        <Section title="高频错误" aside={<Link to="/errors" className="text-xs text-accent">错误库</Link>}>
+        <Section title={tr('高频错误')} aside={<Link to="/errors" className="text-xs text-accent">{tr('错误库')}</Link>}>
           {topErrors.length ? (
             <ul className="space-y-2 text-sm">
               {topErrors.map((e) => (
                 <li key={e.id}>
                   <div className="fr"><s className="text-bad/80">{e.original}</s> → {e.corrected}</div>
-                  <div className="text-xs text-muted">{ERROR_TYPE_LABEL[e.errorType]} · {e.occurrences.length} 次</div>
+                  <div className="text-xs text-muted">{ERROR_TYPE_LABEL[e.errorType]} · {e.occurrences.length} {tr('次')}</div>
                 </li>
               ))}
             </ul>
-          ) : <p className="text-sm text-muted">还没有未解决的错误。</p>}
+          ) : <p className="text-sm text-muted">{tr('还没有未解决的错误。')}</p>}
         </Section>
 
-        <Section title="知识积累">
+        <Section title={tr('知识积累')}>
           <div className="grid grid-cols-2 gap-3">
-            <Stat label="词汇" value={data.vocab.length} sub={LEARN_STATUS.map((s) => `${LEARN_STATUS_LABEL[s]} ${vocabByStatus[s]}`).join(' · ')} />
-            <Stat label="记忆保留率（30 天）" value={retention === null ? '—' : `${retention}%`} sub={`${data.matureLogs.length} 次成熟卡复习`} />
-            <Stat label="语法" value={`${grammarDone} / ${data.grammar.length}`} sub="掌握或跳过" />
-            <Stat label="错误" value={`${openErrors.length} 未解决`} sub={`${data.errors.length - openErrors.length} 已验证`} />
+            <Stat label={tr('词汇')} value={data.vocab.length} sub={LEARN_STATUS.map((s) => `${LEARN_STATUS_LABEL[s]} ${vocabByStatus[s]}`).join(' · ')} />
+            <Stat label={tr('记忆保留率（30 天）')} value={retention === null ? '—' : `${retention}%`} sub={trf('{0} 次成熟卡复习', data.matureLogs.length)} />
+            <Stat label={tr('语法')} value={`${grammarDone} / ${data.grammar.length}`} sub={tr('掌握或跳过')} />
+            <Stat label={tr('错误')} value={trf('{0} 未解决', openErrors.length)} sub={trf('{0} 已验证', data.errors.length - openErrors.length)} />
           </div>
         </Section>
 
-        <Section title="最近学习记录" className="md:col-span-2">
+        <Section title={tr('最近学习记录')} className="md:col-span-2">
           {recent.length ? (
             <ul className="divide-y divide-line text-sm">
               {recent.map((s) => (
                 <li key={s.id} className="flex justify-between py-1.5">
                   <span>{ACTIVITY_LABEL[s.activityType]}{s.notes ? ` · ${s.notes}` : ''}</span>
-                  <span className="text-muted">{new Date(s.startedAt).toLocaleDateString('zh-CN')} · {s.minutes} 分钟</span>
+                  <span className="text-muted">{new Date(s.startedAt).toLocaleDateString('zh-CN')} · {s.minutes} {tr('分钟')}</span>
                 </li>
               ))}
             </ul>
-          ) : <Empty>还没有学习记录。点「＋ 快速记录 → 计时」开始。</Empty>}
+          ) : <Empty>{tr('还没有学习记录。点「＋ 快速记录 → 计时」开始。')}</Empty>}
         </Section>
       </div>
     </div>

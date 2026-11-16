@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 /**
  * French conjugation, offline. Data: french-verbs-lefff (Lefff lexicon, 7.8k verbs), engine: french-verbs.
  * Loaded lazily (≈1 MB gzipped) the first time a conjugation feature is opened.
@@ -10,28 +11,28 @@ export type Tense = (typeof TENSES)[number];
 export const DEFAULT_PRACTICE_TENSES: Tense[] = ['PRESENT', 'PASSE_COMPOSE', 'IMPARFAIT', 'FUTUR'];
 
 export const TENSE_LABEL: Record<Tense, { zh: string; fr: string; level: string }> = {
-  PRESENT: { zh: '现在时', fr: 'présent', level: 'A1' },
-  PASSE_COMPOSE: { zh: '复合过去时', fr: 'passé composé', level: 'A2' },
-  IMPARFAIT: { zh: '未完成过去时', fr: 'imparfait', level: 'A2' },
-  PLUS_QUE_PARFAIT: { zh: '愈过去时', fr: 'plus-que-parfait', level: 'B1' },
-  FUTUR: { zh: '简单将来时', fr: 'futur simple', level: 'A2' },
-  CONDITIONNEL_PRESENT: { zh: '条件式现在时', fr: 'conditionnel présent', level: 'B1' },
-  SUBJONCTIF_PRESENT: { zh: '虚拟式现在时', fr: 'subjonctif présent', level: 'B1' },
-  IMPERATIF_PRESENT: { zh: '命令式', fr: 'impératif', level: 'A2' },
-  PASSE_SIMPLE: { zh: '简单过去时（认读）', fr: 'passé simple', level: 'B2' },
+  PRESENT: { zh: tr('现在时'), fr: 'présent', level: 'A1' },
+  PASSE_COMPOSE: { zh: tr('复合过去时'), fr: 'passé composé', level: 'A2' },
+  IMPARFAIT: { zh: tr('未完成过去时'), fr: 'imparfait', level: 'A2' },
+  PLUS_QUE_PARFAIT: { zh: tr('愈过去时'), fr: 'plus-que-parfait', level: 'B1' },
+  FUTUR: { zh: tr('简单将来时'), fr: 'futur simple', level: 'A2' },
+  CONDITIONNEL_PRESENT: { zh: tr('条件式现在时'), fr: 'conditionnel présent', level: 'B1' },
+  SUBJONCTIF_PRESENT: { zh: tr('虚拟式现在时'), fr: 'subjonctif présent', level: 'B1' },
+  IMPERATIF_PRESENT: { zh: tr('命令式'), fr: 'impératif', level: 'A2' },
+  PASSE_SIMPLE: { zh: tr('简单过去时（认读）'), fr: 'passé simple', level: 'B2' },
 };
 
 /** Short memory rules shown next to tables and after each answer. Written for this app. */
 export const TENSE_RULE: Record<Tense, string> = {
-  PRESENT: '-er：-e -es -e -ons -ez -ent。第二组 -ir（finir）：-is -is -it -issons -issez -issent。第三组多不规则，要逐个记。',
-  PASSE_COMPOSE: 'avoir / être 的现在时 + 过去分词。用 être 的：表示位移或状态变化的一小组动词（aller, venir, partir, naître, mourir…）和所有代词式动词；这时过去分词要和主语性数配合。',
-  IMPARFAIT: '取 nous 现在时，去掉 -ons，加 -ais -ais -ait -ions -iez -aient。唯一例外：être → ét-。',
-  PLUS_QUE_PARFAIT: 'avoir / être 的未完成过去时 + 过去分词。配合规则同复合过去时。',
-  FUTUR: '不定式（-re 去掉 e）+ -ai -as -a -ons -ez -ont。不规则词干：ser- aur- ir- fer- pourr- voudr- devr- saur- viendr- verr- enverr-。',
-  CONDITIONNEL_PRESENT: '将来时的词干 + 未完成过去时的词尾 -ais -ais -ait -ions -iez -aient。',
-  SUBJONCTIF_PRESENT: '取 ils 现在时，去掉 -ent，加 -e -es -e -ions -iez -ent；nous / vous 常与未完成过去时同形。不规则：sois, aie, aille, fasse, puisse, sache, veuille。',
-  IMPERATIF_PRESENT: '只有 tu / nous / vous，用现在时去掉主语。-er 动词的 tu 形去掉 s（Parle !）。不规则：sois, aie, sache, veuille。',
-  PASSE_SIMPLE: '书面叙述用的过去时，小说和新闻里常见。阅读时认得即可，口语和写作一般用复合过去时。',
+  PRESENT: tr('-er：-e -es -e -ons -ez -ent。第二组 -ir（finir）：-is -is -it -issons -issez -issent。第三组多不规则，要逐个记。'),
+  PASSE_COMPOSE: tr('avoir / être 的现在时 + 过去分词。用 être 的：表示位移或状态变化的一小组动词（aller, venir, partir, naître, mourir…）和所有代词式动词；这时过去分词要和主语性数配合。'),
+  IMPARFAIT: tr('取 nous 现在时，去掉 -ons，加 -ais -ais -ait -ions -iez -aient。唯一例外：être → ét-。'),
+  PLUS_QUE_PARFAIT: tr('avoir / être 的未完成过去时 + 过去分词。配合规则同复合过去时。'),
+  FUTUR: tr('不定式（-re 去掉 e）+ -ai -as -a -ons -ez -ont。不规则词干：ser- aur- ir- fer- pourr- voudr- devr- saur- viendr- verr- enverr-。'),
+  CONDITIONNEL_PRESENT: tr('将来时的词干 + 未完成过去时的词尾 -ais -ais -ait -ions -iez -aient。'),
+  SUBJONCTIF_PRESENT: tr('取 ils 现在时，去掉 -ent，加 -e -es -e -ions -iez -ent；nous / vous 常与未完成过去时同形。不规则：sois, aie, aille, fasse, puisse, sache, veuille。'),
+  IMPERATIF_PRESENT: tr('只有 tu / nous / vous，用现在时去掉主语。-er 动词的 tu 形去掉 s（Parle !）。不规则：sois, aie, sache, veuille。'),
+  PASSE_SIMPLE: tr('书面叙述用的过去时，小说和新闻里常见。阅读时认得即可，口语和写作一般用复合过去时。'),
 };
 
 export const PERSONS = ['je', 'tu', 'il/elle', 'nous', 'vous', 'ils/elles'] as const;

@@ -3,6 +3,7 @@ import type {
   Assessment, CardRecord, ErrorEntry, Expression, Goal, Grammar, Link, MetaRow, Retro, ReviewLog, Sentence, Session,
   SystemFields, TimeBlock, Vocab,
 } from './types';
+import { trf } from '../i18n';
 
 export const SCHEMA_VERSION = 1;
 
@@ -77,7 +78,7 @@ export async function insert<T extends object>(name: TableName, data: T): Promis
 export async function update<T extends SystemFields>(name: TableName, id: string, patch: Partial<T>): Promise<void> {
   await db.transaction('rw', table(name), async () => {
     const cur = await table(name).get(id);
-    if (!cur) throw new Error(`记录不存在: ${name}/${id}`);
+    if (!cur) throw new Error(trf('记录不存在: {0}/{1}', name, id));
     await table(name).put({ ...cur, ...patch, id, updatedAt: nowIso(), rev: (cur.rev ?? 0) + 1 } as Rec);
   });
 }

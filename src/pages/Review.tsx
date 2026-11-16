@@ -7,6 +7,8 @@ import { buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs'
 import { displayLemma } from '../db/rules';
 import { ERROR_TYPE_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
 import { Button, Empty, GramTag, PageHeader } from '../ui/kit';
+import { tr, trf } from '../i18n';
+import { bilingualName } from '../i18n';
 
 type Item = Vocab | Expression | Sentence | Grammar | ErrorEntry;
 
@@ -18,10 +20,10 @@ function Front({ card, item }: { card: CardRecord; item: Item }) {
     }
     case 'expression': return <div className="fr text-3xl">{(item as Expression).text}</div>;
     case 'sentence': return <div className="fr text-2xl leading-snug">{(item as Sentence).fr}</div>;
-    case 'grammar': return <><div className="text-xs text-muted">语法 · 回忆规则和例句</div><div className="mt-2 text-2xl">{(item as Grammar).name}</div></>;
+    case 'grammar': return <><div className="text-xs text-muted">{tr('语法 · 回忆规则和例句')}</div><div className="mt-2 text-2xl">{bilingualName((item as Grammar).name)}</div></>;
     case 'error': {
       const e = item as ErrorEntry;
-      return <><div className="text-xs text-muted">改错 · {ERROR_TYPE_LABEL[e.errorType]}</div><div className="fr mt-2 text-2xl">{e.original}</div></>;
+      return <><div className="text-xs text-muted">{tr('改错 ·')} {ERROR_TYPE_LABEL[e.errorType]}</div><div className="fr mt-2 text-2xl">{e.original}</div></>;
     }
   }
 }
@@ -41,7 +43,7 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
           {v.defEn && <div className="text-[17px]">{v.defEn}</div>}
           {v.defZh && <div className="text-[15px] text-muted">{v.defZh}</div>}
           {v.examples[0] && <div className="fr mt-2 text-[17px] leading-relaxed italic">« {v.examples[0].fr} »</div>}
-          {!v.defEn && !v.defZh && <div className="text-sm text-faint">还没有释义，可以去词汇库补全</div>}
+          {!v.defEn && !v.defZh && <div className="text-sm text-faint">{tr('还没有释义，可以去词汇库补全')}</div>}
         </div>
       );
     }
@@ -65,10 +67,10 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
 }
 
 const BUTTONS: { r: Grade; label: string; cls: string }[] = [
-  { r: Rating.Again, label: '忘了', cls: 'border-bad/40 text-bad' },
-  { r: Rating.Hard, label: '困难', cls: 'border-warn/40 text-warn' },
-  { r: Rating.Good, label: '记得', cls: 'border-ink bg-ink text-paper [&_div]:text-paper/70' },
-  { r: Rating.Easy, label: '简单', cls: 'border-accent/40 text-accent' },
+  { r: Rating.Again, label: tr('忘了'), cls: 'border-bad/40 text-bad' },
+  { r: Rating.Hard, label: tr('困难'), cls: 'border-warn/40 text-warn' },
+  { r: Rating.Good, label: tr('记得'), cls: 'border-ink bg-ink text-paper [&_div]:text-paper/70' },
+  { r: Rating.Easy, label: tr('简单'), cls: 'border-accent/40 text-accent' },
 ];
 
 export default function Review() {
@@ -114,21 +116,21 @@ export default function Review() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <PageHeader title="复习" eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} sub={`本次已复习 ${done} · 剩余 ${remaining}（新卡 ${queue.fresh.length}）${queue.overdueDeferred ? ` · ${queue.overdueDeferred} 张顺延` : ''}`} />
+      <PageHeader title={tr('复习')} eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} sub={trf('本次已复习 {0} · 剩余 {1}（新卡 {2}）{3}', done, remaining, queue.fresh.length, queue.overdueDeferred ? trf(' · {0} 张顺延', queue.overdueDeferred) : '')} />
       {!current ? (
         <Empty>
-          今天的复习完成了。{queue.overdueDeferred ? `还有 ${queue.overdueDeferred} 张积压会分到之后几天。` : ''}
-          <div className="mt-3"><Link to="/vocab" className="text-accent underline">去添加新词</Link></div>
+          {tr('今天的复习完成了。')}{queue.overdueDeferred ? trf('还有 {0} 张积压会分到之后几天。', queue.overdueDeferred) : ''}
+          <div className="mt-3"><Link to="/vocab" className="text-accent underline">{tr('去添加新词')}</Link></div>
         </Empty>
       ) : (
         <>
           <button
             onClick={() => setFlipped(true)}
             className="flex min-h-[46vh] w-full flex-col items-center justify-center rounded-md border border-line bg-panel p-6 text-center"
-            aria-label={flipped ? '卡片背面' : '点击翻面'}
+            aria-label={flipped ? tr('卡片背面') : tr('点击翻面')}
           >
             <Front card={current.card} item={current.item} />
-            {flipped ? <div className="mt-6 w-full border-t border-line pt-6"><Back card={current.card} item={current.item} /></div> : <div className="mt-8 text-xs text-faint">点击或按空格翻面</div>}
+            {flipped ? <div className="mt-6 w-full border-t border-line pt-6"><Back card={current.card} item={current.item} /></div> : <div className="mt-8 text-xs text-faint">{tr('点击或按空格翻面')}</div>}
           </button>
           <div className="sticky bottom-20 mt-4 md:bottom-4">
             {flipped ? (
@@ -142,7 +144,7 @@ export default function Review() {
                 ))}
               </div>
             ) : (
-              <Button kind="primary" className="w-full py-3 text-base" onClick={() => setFlipped(true)}>显示答案</Button>
+              <Button kind="primary" className="w-full py-3 text-base" onClick={() => setFlipped(true)}>{tr('显示答案')}</Button>
             )}
           </div>
         </>

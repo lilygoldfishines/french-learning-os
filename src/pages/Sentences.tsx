@@ -5,6 +5,7 @@ import { addSentence } from '../db/items';
 import type { Sentence } from '../db/types';
 import { Button, Empty, Field, Input, Modal, PageHeader, Textarea, useToast } from '../ui/kit';
 import { KnowledgeTabs } from './More';
+import { tr } from '../i18n';
 
 type Draft = Omit<Sentence, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev'> & { id?: string };
 
@@ -15,20 +16,20 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setS((p) => ({ ...p, [k]: v }));
   return (
     <div className="space-y-3">
-      <Field label="法语句子 *"><Textarea lang="fr" className="fr text-lg" value={s.fr} onChange={(e) => set('fr', e.target.value)} /></Field>
+      <Field label={tr('法语句子 *')}><Textarea lang="fr" className="fr text-lg" value={s.fr} onChange={(e) => set('fr', e.target.value)} /></Field>
       <Field label="English"><Textarea rows={2} value={s.en ?? ''} onChange={(e) => set('en', e.target.value)} /></Field>
-      <Field label="中文"><Textarea rows={2} value={s.zh ?? ''} onChange={(e) => set('zh', e.target.value)} /></Field>
-      <Field label="出处"><Input value={s.source ?? ''} onChange={(e) => set('source', e.target.value)} placeholder="如：Le Monde, 2026-11-14；《Portrait de la jeune fille en feu》" /></Field>
-      <Field label="笔记"><Textarea rows={2} value={s.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
+      <Field label={tr('中文')}><Textarea rows={2} value={s.zh ?? ''} onChange={(e) => set('zh', e.target.value)} /></Field>
+      <Field label={tr('出处')}><Input value={s.source ?? ''} onChange={(e) => set('source', e.target.value)} placeholder={tr('如：Le Monde, 2026-11-14；《Portrait de la jeune fille en feu》')} /></Field>
+      <Field label={tr('笔记')}><Textarea rows={2} value={s.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
       {err && <p className="text-sm text-bad">{err}</p>}
       <div className="flex justify-between">
-        <div>{s.id && <Button kind="danger" onClick={async () => { if (confirm('删除？')) { await remove('sentence', s.id!); onClose(); } }}>删除</Button>}</div>
+        <div>{s.id && <Button kind="danger" onClick={async () => { if (confirm(tr('删除？'))) { await remove('sentence', s.id!); onClose(); } }}>{tr('删除')}</Button>}</div>
         <div className="flex gap-2">
-          <Button onClick={onClose}>取消</Button>
+          <Button onClick={onClose}>{tr('取消')}</Button>
           <Button kind="primary" onClick={async () => {
-            try { const { id, ...rest } = s; if (id) await update<Sentence>('sentence', id, rest); else await addSentence(rest); toast('已保存'); onClose(); }
+            try { const { id, ...rest } = s; if (id) await update<Sentence>('sentence', id, rest); else await addSentence(rest); toast(tr('已保存')); onClose(); }
             catch (e) { setErr((e as Error).message); }
-          }}>保存</Button>
+          }}>{tr('保存')}</Button>
         </div>
       </div>
     </div>
@@ -43,9 +44,9 @@ export default function SentencesPage() {
   return (
     <div>
       <KnowledgeTabs />
-      <PageHeader title="句子" sub="从真实材料里摘下来的好句子，会进入复习" actions={<Button kind="primary" onClick={() => setEditing({ fr: '', en: '', zh: '', source: '', notes: '' })}>＋ 句子</Button>} />
-      <Input className="mb-4 max-w-md" placeholder="搜索" value={q} onChange={(e) => setQ(e.target.value)} aria-label="搜索句子" />
-      {list?.length === 0 ? <Empty>还没有句子。</Empty> : (
+      <PageHeader title={tr('句子')} sub={tr('从真实材料里摘下来的好句子，会进入复习')} actions={<Button kind="primary" onClick={() => setEditing({ fr: '', en: '', zh: '', source: '', notes: '' })}>{tr('＋ 句子')}</Button>} />
+      <Input className="mb-4 max-w-md" placeholder={tr('搜索')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={tr('搜索句子')} />
+      {list?.length === 0 ? <Empty>{tr('还没有句子。')}</Empty> : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
           {rows.map((s) => (
             <li key={s.id}>
@@ -58,7 +59,7 @@ export default function SentencesPage() {
           ))}
         </ul>
       )}
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? '编辑句子' : '新句子'}>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑句子') : tr('新句子')}>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>
     </div>

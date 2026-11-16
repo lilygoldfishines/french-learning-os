@@ -7,6 +7,7 @@ import { ERROR_STATUS, ERROR_STATUS_LABEL, ERROR_TYPES, ERROR_TYPE_LABEL, type E
 import { Badge, Button, Empty, Field, Input, Modal, PageHeader, Section, Select, Stat, Textarea, useToast } from '../ui/kit';
 import { ErrorForm } from '../features/QuickAdd';
 import { KnowledgeTabs } from './More';
+import { tr, trf } from '../i18n';
 
 const tone = (s: ErrorEntry['status']) => (s === 'verified' ? 'good' : s === 'practicing' ? 'warn' : 'bad');
 const day = (iso: string) => new Date(iso).toLocaleDateString('zh-CN');
@@ -22,19 +23,19 @@ function Detail({ id, onClose }: { id: string; onClose: () => void }) {
     const set = <K extends keyof ErrorEntry>(k: K, v: ErrorEntry[K]) => setEdit((p) => ({ ...p, [k]: v }));
     return (
       <div className="space-y-3">
-        <Field label="原句"><Textarea lang="fr" className="fr" rows={2} value={edit.original ?? ''} onChange={(x) => set('original', x.target.value)} /></Field>
-        <Field label="修正"><Textarea lang="fr" className="fr" rows={2} value={edit.corrected ?? ''} onChange={(x) => set('corrected', x.target.value)} /></Field>
+        <Field label={tr('原句')}><Textarea lang="fr" className="fr" rows={2} value={edit.original ?? ''} onChange={(x) => set('original', x.target.value)} /></Field>
+        <Field label={tr('修正')}><Textarea lang="fr" className="fr" rows={2} value={edit.corrected ?? ''} onChange={(x) => set('corrected', x.target.value)} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="类型"><Select value={edit.errorType} onChange={(x) => set('errorType', x.target.value as ErrorType)} options={ERROR_TYPES.map((t) => ({ value: t, label: ERROR_TYPE_LABEL[t] }))} /></Field>
-          <Field label="相关语法点"><Input value={edit.grammarRef ?? ''} onChange={(x) => set('grammarRef', x.target.value)} /></Field>
+          <Field label={tr('类型')}><Select value={edit.errorType} onChange={(x) => set('errorType', x.target.value as ErrorType)} options={ERROR_TYPES.map((t) => ({ value: t, label: ERROR_TYPE_LABEL[t] }))} /></Field>
+          <Field label={tr('相关语法点')}><Input value={edit.grammarRef ?? ''} onChange={(x) => set('grammarRef', x.target.value)} /></Field>
         </div>
-        <Field label="解释"><Textarea rows={2} value={edit.explanation ?? ''} onChange={(x) => set('explanation', x.target.value)} /></Field>
-        <Field label="笔记"><Textarea rows={2} value={edit.notes ?? ''} onChange={(x) => set('notes', x.target.value)} /></Field>
-        <div className="flex justify-end gap-2"><Button onClick={() => setEdit(null)}>取消</Button><Button kind="primary" onClick={async () => {
+        <Field label={tr('解释')}><Textarea rows={2} value={edit.explanation ?? ''} onChange={(x) => set('explanation', x.target.value)} /></Field>
+        <Field label={tr('笔记')}><Textarea rows={2} value={edit.notes ?? ''} onChange={(x) => set('notes', x.target.value)} /></Field>
+        <div className="flex justify-end gap-2"><Button onClick={() => setEdit(null)}>{tr('取消')}</Button><Button kind="primary" onClick={async () => {
           const { original, corrected, errorType, grammarRef, explanation, notes } = edit;
           await update<ErrorEntry>('error', id, { original, corrected, errorType, grammarRef, explanation, notes });
           setEdit(null);
-        }}>保存</Button></div>
+        }}>{tr('保存')}</Button></div>
       </div>
     );
   }
@@ -51,27 +52,27 @@ function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         </div>
       </div>
       <div className="rounded-md bg-accent-soft p-3 text-sm">
-        验证进度：上次出错之后用对 {validUses.length} / {VERIFY_MIN_USES} 次
-        {validUses.length >= 2 && ` · 间隔 ${Math.floor((Date.parse(validUses[validUses.length - 1]) - Date.parse(validUses[0])) / 86400000)} / ${VERIFY_MIN_SPAN_DAYS} 天`}
-        <div className="text-xs text-muted">需要在之后的真实练习（写作、口语）里用对至少 {VERIFY_MIN_USES} 次，且相隔 {VERIFY_MIN_SPAN_DAYS} 天以上，才算解决。再犯一次就重新计算。</div>
+        {tr('验证进度：上次出错之后用对')} {validUses.length} / {VERIFY_MIN_USES} {tr('次')}
+        {validUses.length >= 2 && trf(' · 间隔 {0} / {1} 天', Math.floor((Date.parse(validUses[validUses.length - 1]) - Date.parse(validUses[0])) / 86400000), VERIFY_MIN_SPAN_DAYS)}
+        <div className="text-xs text-muted">{tr('需要在之后的真实练习（写作、口语）里用对至少')} {VERIFY_MIN_USES} {tr('次，且相隔')} {VERIFY_MIN_SPAN_DAYS} {tr('天以上，才算解决。再犯一次就重新计算。')}</div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Button onClick={async () => { await recordCorrectUse(id); toast('已记录一次正确使用'); }}>✓ 这次用对了</Button>
-        <Button onClick={async () => { await recordRecurrence(id, '手动记录'); toast('已记录再次出错'); }}>✗ 又犯了</Button>
+        <Button onClick={async () => { await recordCorrectUse(id); toast(tr('已记录一次正确使用')); }}>{tr('✓ 这次用对了')}</Button>
+        <Button onClick={async () => { await recordRecurrence(id, tr('手动记录')); toast(tr('已记录再次出错')); }}>{tr('✗ 又犯了')}</Button>
       </div>
       <div className="grid gap-4 text-sm md:grid-cols-2">
         <div>
-          <div className="mb-1 text-xs text-muted">出错记录（{e.occurrences.length}）</div>
+          <div className="mb-1 text-xs text-muted">{tr('出错记录（')}{e.occurrences.length}{tr('）')}</div>
           <ul className="space-y-0.5">{[...e.occurrences].reverse().map((o, i) => <li key={i}>{day(o.date)}{o.source ? ` · ${o.source}` : ''}</li>)}</ul>
         </div>
         <div>
-          <div className="mb-1 text-xs text-muted">正确使用（{e.correctUses.length}）</div>
+          <div className="mb-1 text-xs text-muted">{tr('正确使用（')}{e.correctUses.length}{tr('）')}</div>
           <ul className="space-y-0.5">{[...e.correctUses].reverse().map((d, i) => <li key={i} className={d > lastOcc ? '' : 'text-faint'}>{day(d)}</li>)}</ul>
         </div>
       </div>
       <div className="flex justify-between">
-        <Button kind="danger" onClick={async () => { if (confirm('删除这条错误记录？')) { await remove('error', id); onClose(); } }}>删除</Button>
-        <Button onClick={() => setEdit(e)}>编辑</Button>
+        <Button kind="danger" onClick={async () => { if (confirm(tr('删除这条错误记录？'))) { await remove('error', id); onClose(); } }}>{tr('删除')}</Button>
+        <Button onClick={() => setEdit(e)}>{tr('编辑')}</Button>
       </div>
     </div>
   );
@@ -107,17 +108,17 @@ export default function ErrorsPage() {
   return (
     <div>
       <KnowledgeTabs />
-      <PageHeader title="错误库" sub="改过一次不算掌握；要在之后的练习中验证" actions={<Button kind="primary" onClick={() => setAdding(true)}>＋ 记录错误</Button>} />
+      <PageHeader title={tr('错误库')} sub={tr('改过一次不算掌握；要在之后的练习中验证')} actions={<Button kind="primary" onClick={() => setAdding(true)}>{tr('＋ 记录错误')}</Button>} />
       <div className="mb-4 grid gap-4 md:grid-cols-3">
-        <Section title="状态">
+        <Section title={tr('状态')}>
           <div className="grid grid-cols-2 gap-3">
-            <Stat label="未解决" value={stats.open} />
-            <Stat label="练习中" value={stats.practicing} />
-            <Stat label="反复出现" value={stats.recurring} sub="≥ 2 次且未解决" />
-            <Stat label="已验证解决" value={stats.verified} />
+            <Stat label={tr('未解决')} value={stats.open} />
+            <Stat label={tr('练习中')} value={stats.practicing} />
+            <Stat label={tr('反复出现')} value={stats.recurring} sub={tr('≥ 2 次且未解决')} />
+            <Stat label={tr('已验证解决')} value={stats.verified} />
           </div>
         </Section>
-        <Section title="未解决错误 · 按类型" className="md:col-span-2">
+        <Section title={tr('未解决错误 · 按类型')} className="md:col-span-2">
           {stats.byType.length ? (
             <ul className="space-y-1.5 text-sm">
               {stats.byType.map((x) => (
@@ -128,15 +129,15 @@ export default function ErrorsPage() {
                 </li>
               ))}
             </ul>
-          ) : <p className="text-sm text-muted">暂无</p>}
-          {stats.focus.length > 0 && <p className="mt-2 text-xs text-bad">需要专项训练：{stats.focus.map((x) => ERROR_TYPE_LABEL[x.t]).join('、')}</p>}
+          ) : <p className="text-sm text-muted">{tr('暂无')}</p>}
+          {stats.focus.length > 0 && <p className="mt-2 text-xs text-bad">{tr('需要专项训练：')}{stats.focus.map((x) => ERROR_TYPE_LABEL[x.t]).join(tr('、'))}</p>}
         </Section>
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
-        <Select className="w-auto" value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: 'unresolved', label: '未解决（含练习中）' }, { value: 'all', label: '全部' }, ...ERROR_STATUS.map((s) => ({ value: s, label: ERROR_STATUS_LABEL[s] }))]} />
-        <Select className="w-auto" value={type} onChange={(e) => setType(e.target.value)} options={[{ value: '', label: '全部类型' }, ...ERROR_TYPES.map((t) => ({ value: t, label: ERROR_TYPE_LABEL[t] }))]} />
+        <Select className="w-auto" value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: 'unresolved', label: tr('未解决（含练习中）') }, { value: 'all', label: tr('全部') }, ...ERROR_STATUS.map((s) => ({ value: s, label: ERROR_STATUS_LABEL[s] }))]} />
+        <Select className="w-auto" value={type} onChange={(e) => setType(e.target.value)} options={[{ value: '', label: tr('全部类型') }, ...ERROR_TYPES.map((t) => ({ value: t, label: ERROR_TYPE_LABEL[t] }))]} />
       </div>
-      {list?.length === 0 ? <Empty>还没有错误记录。写作或口语后，把被纠正的地方记下来。</Empty> : (
+      {list?.length === 0 ? <Empty>{tr('还没有错误记录。写作或口语后，把被纠正的地方记下来。')}</Empty> : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
           {rows.map((e) => (
             <li key={e.id}>
@@ -147,15 +148,15 @@ export default function ErrorsPage() {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <Badge tone={tone(e.status)}>{ERROR_STATUS_LABEL[e.status]}</Badge>
-                  <span className="text-xs text-muted">{ERROR_TYPE_LABEL[e.errorType]} · {e.occurrences.length} 次</span>
+                  <span className="text-xs text-muted">{ERROR_TYPE_LABEL[e.errorType]} · {e.occurrences.length} {tr('次')}</span>
                 </div>
               </button>
             </li>
           ))}
         </ul>
       )}
-      <Modal open={!!open} onClose={() => setOpen(null)} title="错误详情">{open && <Detail id={open} onClose={() => setOpen(null)} />}</Modal>
-      <Modal open={adding} onClose={() => setAdding(false)} title="记录错误"><ErrorForm done={() => setAdding(false)} /></Modal>
+      <Modal open={!!open} onClose={() => setOpen(null)} title={tr('错误详情')}>{open && <Detail id={open} onClose={() => setOpen(null)} />}</Modal>
+      <Modal open={adding} onClose={() => setAdding(false)} title={tr('记录错误')}><ErrorForm done={() => setAdding(false)} /></Modal>
     </div>
   );
 }

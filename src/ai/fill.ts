@@ -3,6 +3,7 @@ import { db, getMeta, setMeta } from '../db/db';
 import { VocabIn } from '../io/aiImport';
 import { articleToGender, guessArticle } from '../db/rules';
 import { POS, GENDERS, CEFR_LEVELS, VOCAB_TOPICS, type Vocab } from '../db/types';
+import { tr, trf } from '../i18n';
 
 /**
  * Optional AI auto-fill. Calls the Anthropic Messages API straight from the browser with the
@@ -36,7 +37,7 @@ const TOOL = {
       pos: { type: 'string', enum: [...POS] },
       ipa: { type: 'string', description: 'IPA without slashes, standard French (Paris).' },
       defEn: { type: 'string', description: 'Concise English definition; separate senses with "; ". Most common senses first.' },
-      defZh: { type: 'string', description: '简体中文解释，简洁；多个义项用“；”分隔。' },
+      defZh: { type: 'string', description: tr('简体中文解释，简洁；多个义项用“；”分隔。') },
       examples: {
         type: 'array', minItems: 1, maxItems: 2,
         items: { type: 'object', required: ['fr', 'en', 'zh'], properties: { fr: { type: 'string' }, en: { type: 'string' }, zh: { type: 'string' } } },
@@ -54,15 +55,19 @@ const TOOL = {
   },
 } as const;
 
-export class AiError extends Error {}
+/** fatal = stop a bulk run (bad key, no balance, offline). */
+export class AiError extends Error {
+  fatal: boolean;
+  constructor(msg: string, fatal = false) { super(msg); this.fatal = fatal; }
+}
 
 export type FilledVocab = Omit<Vocab, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev' | 'status' | 'related'>;
 
 /** Ask Claude for a full entry. `input` may include an article ("la scène") or a phrase. */
 export async function aiFillVocab(input: string, cfg: AiConfig, opts: { posHint?: string; fetchFn?: typeof fetch } = {}): Promise<FilledVocab> {
   const word = input.trim();
-  if (!word) throw new AiError('请先输入一个法语词');
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new AiError('当前离线，AI 补全需要联网');
+  if (!word) throw new AiError(tr('请先输入一个法语词'));
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new AiError(tr('当前离线，AI 补全需要联网'), true);
   const fetchFn = opts.fetchFn ?? fetch;
   let res: Response;
   try {
@@ -88,21 +93,21 @@ export async function aiFillVocab(input: string, cfg: AiConfig, opts: { posHint?
       }),
     });
   } catch {
-    throw new AiError('无法连接 AI 服务，请检查网络');
+    throw new AiError(tr('无法连接 AI 服务，请检查网络'), true);
   }
   if (!res.ok) {
     let msg = '';
     try { msg = (await res.json())?.error?.message ?? ''; } catch { /* ignore */ }
-    if (res.status === 401) throw new AiError('API 密钥无效，请在设置里检查');
-    if (res.status === 429) throw new AiError('请求太频繁或额度不足，稍后再试');
-    if (res.status === 400 && /credit|balance/i.test(msg)) throw new AiError('API 账户余额不足');
-    throw new AiError(`AI 服务出错（${res.status}）${msg ? `：${msg}` : ''}`);
+    if (res.status === 401) throw new AiError(tr('API 密钥无效，请在设置里检查'), true);
+    if (res.status === 429) throw new AiError(tr('请求太频繁或额度不足，稍后再试'), true);
+    if (res.status === 400 && /credit|balance/i.test(msg)) throw new AiError(tr('API 账户余额不足'), true);
+    throw new AiError(trf('AI 服务出错（{0}）{1}', res.status, msg ? trf('：{0}', msg) : ''));
   }
   const data = await res.json();
   const block = (data?.content ?? []).find((b: { type: string }) => b.type === 'tool_use');
-  if (!block?.input) throw new AiError('AI 没有返回词条');
+  if (!block?.input) throw new AiError(tr('AI 没有返回词条'));
   const parsed = VocabIn.safeParse(block.input);
-  if (!parsed.success) throw new AiError(`AI 返回格式不对：${parsed.error.issues[0]?.message ?? ''}`);
+  if (!parsed.success) throw new AiError(trf('AI 返回格式不对：{0}', parsed.error.issues[0]?.message ?? ''));
   const v = parsed.data;
   let { lemma, article } = v;
   if (!article) { const g = guessArticle(lemma); lemma = g.lemma; article = g.article ?? ''; }

@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import { db, SCHEMA_VERSION, TABLES, setMeta, type TableName } from '../db/db';
 import { displayLemma } from '../db/rules';
 import type { SystemFields, Vocab } from '../db/types';
+import { tr, trf } from '../i18n';
 
 export const APP_ID = 'french-learning-os';
 /** Device-local meta that must never leave the device (API key) or be restored (backup timestamp, running timer). */
@@ -45,17 +46,17 @@ export interface VerifyResult { ok: boolean; problems: string[]; backup?: Backup
 export async function verifyBackup(raw: unknown): Promise<VerifyResult> {
   const problems: string[] = [];
   const b = raw as Backup;
-  if (!b || typeof b !== 'object') return { ok: false, problems: ['不是有效的 JSON 对象'] };
-  if (b.app !== APP_ID) problems.push('这不是 French Learning OS 的备份文件');
-  if (typeof b.schemaVersion !== 'number') problems.push('缺少 schemaVersion');
-  else if (b.schemaVersion > SCHEMA_VERSION) problems.push(`备份来自更新的版本（v${b.schemaVersion}），请先更新应用`);
-  if (!b.data || typeof b.data !== 'object') problems.push('缺少 data');
+  if (!b || typeof b !== 'object') return { ok: false, problems: [tr('不是有效的 JSON 对象')] };
+  if (b.app !== APP_ID) problems.push(tr('这不是 French Learning OS 的备份文件'));
+  if (typeof b.schemaVersion !== 'number') problems.push(tr('缺少 schemaVersion'));
+  else if (b.schemaVersion > SCHEMA_VERSION) problems.push(trf('备份来自更新的版本（v{0}），请先更新应用', b.schemaVersion));
+  if (!b.data || typeof b.data !== 'object') problems.push(tr('缺少 data'));
   if (problems.length) return { ok: false, problems };
   for (const t of Object.keys(b.counts ?? {})) {
-    if ((b.data[t]?.length ?? 0) !== b.counts[t]) problems.push(`${t} 条数与记录不符`);
+    if ((b.data[t]?.length ?? 0) !== b.counts[t]) problems.push(trf('{0} 条数与记录不符', t));
   }
   const sum = await sha256(JSON.stringify(b.data));
-  if (sum !== b.checksum) problems.push('校验和不一致：文件可能被修改或损坏');
+  if (sum !== b.checksum) problems.push(tr('校验和不一致：文件可能被修改或损坏'));
   return { ok: problems.length === 0, problems, backup: b };
 }
 
