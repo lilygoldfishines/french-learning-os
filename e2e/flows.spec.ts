@@ -360,3 +360,92 @@ test('14 · English interface: switch language, no Chinese left on any page, swi
   await page.getByRole('main').getByRole('button', { name: '中文' }).click();
   await expect(page.getByRole('heading', { name: '设置与备份' })).toBeVisible();
 });
+
+test('15 · cloud sync between two devices (stand-in server, real client library)', async ({ browser, page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'one run is enough: two browser profiles play the two devices');
+  type Row = { tbl: string; id: string; data: Record<string, unknown>; deleted: boolean; version: number; server_updated_at: string };
+  const rows = new Map<string, Row>();
+  let clock = Date.parse('2026-11-17T00:00:00Z');
+  const user = { id: '9a8b7c6d-0000-4000-8000-000000000001', email: 'ines@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-11-17T00:00:00Z' };
+  const wire = async (p: typeof page) => {
+    await p.route('https://rloipmnxjahndadimroe.supabase.co/**', async (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
+      if (url.pathname === '/auth/v1/token') {
+        const b = req.postDataJSON();
+        if (b.password !== 'secret123') return json({ error: 'invalid_grant', error_description: 'Invalid login credentials' }, 400);
+        return json({ access_token: 'tok', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r', user });
+      }
+      if (url.pathname === '/rest/v1/rpc/sync_push') {
+        const { items } = req.postDataJSON();
+        return json(items.map((it: Row & { base: number | null }) => {
+          const k = `${it.tbl}|${it.id}`, cur = rows.get(k);
+          let version: number | null = null;
+          if (it.base === null) { if (!cur) { version = 1; rows.set(k, { tbl: it.tbl, id: it.id, data: it.data, deleted: it.deleted, version, server_updated_at: new Date(clock += 1000).toISOString() }); } }
+          else if (cur && cur.version === it.base) { version = cur.version + 1; rows.set(k, { ...cur, data: it.data, deleted: it.deleted, version, server_updated_at: new Date(clock += 1000).toISOString() }); }
+          return { tbl: it.tbl, id: it.id, version };
+        }));
+      }
+      if (url.pathname === '/rest/v1/records') {
+        const gt = url.searchParams.get('server_updated_at')?.replace('gt.', '');
+        const tbl = url.searchParams.get('tbl')?.replace('eq.', ''), id = url.searchParams.get('id')?.replace('eq.', '');
+        let list = [...rows.values()];
+        if (gt) list = list.filter((r) => r.server_updated_at > gt);
+        if (tbl) list = list.filter((r) => r.tbl === tbl && r.id === id);
+        list.sort((a, b) => a.server_updated_at.localeCompare(b.server_updated_at));
+        return json(list.slice(0, Number(url.searchParams.get('limit') ?? 1000)));
+      }
+      return json({});
+    });
+  };
+  const signIn = async (p: typeof page) => {
+    await p.goto('./#/settings');
+    await p.getByLabel('邮箱').fill(user.email);
+    await p.getByLabel('密码（至少 6 位）').fill('secret123');
+    await p.getByRole('button', { name: '登录', exact: true }).click();
+    await expect(p.getByText(`已登录：${user.email}`)).toBeVisible();
+    await expect(p.getByText(/上次同步：刚刚/)).toBeVisible();
+  };
+
+  // device A = this page; device B = a fresh profile
+  await wire(page);
+  await openQuick(page);
+  const dlg = page.getByRole('dialog', { name: '快速记录' });
+  await dlg.getByLabel('法语（可以带冠词').fill('la scène');
+  await dlg.getByLabel('英文释义').fill('scene');
+  await dlg.getByRole('button', { name: '保存' }).click();
+  await page.getByRole('button', { name: '关闭' }).click();
+  await signIn(page);
+  expect([...rows.keys()].filter((k) => k.startsWith('vocab|'))).toHaveLength(1);
+  expect([...rows.keys()].filter((k) => k.startsWith('grammar|'))).toHaveLength(59);
+
+  const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const b = await ctxB.newPage();
+  b.on('dialog', (d) => d.accept());
+  await wire(b);
+  await signIn(b);
+  await b.goto('./#/vocab');
+  await expect(b.getByRole('button', { name: /la scène/ })).toBeVisible();
+  await b.goto('./#/grammar');
+  await expect(b.getByRole('heading', { name: /^A1 · 0\/10/ })).toBeVisible(); // 10 A1 seeds, not 20
+
+  // edit the same word on both devices → conflict shown on the second device to sync
+  for (const [p, txt] of [[page, 'scene (A)'], [b, 'scene (B)']] as const) {
+    await p.goto('./#/vocab');
+    await p.getByRole('button', { name: /la scène/ }).click();
+    await p.getByRole('dialog', { name: '编辑词条' }).getByLabel('英文释义').fill(txt);
+    await p.getByRole('dialog', { name: '编辑词条' }).getByRole('button', { name: '保存', exact: true }).click();
+  }
+  for (const p of [page, b]) { await p.goto('./#/settings'); await p.getByRole('button', { name: '立即同步' }).click(); await expect(p.getByRole('button', { name: '立即同步' })).toBeEnabled(); }
+  await expect(b.getByText('条记录在两台设备上都改过，请选择保留哪个版本')).toBeVisible();
+  await expect(b.getByRole('cell', { name: 'scene (A)' })).toBeVisible();
+  await b.getByRole('button', { name: '保留这台设备的' }).click();
+  await b.getByRole('button', { name: '立即同步' }).click();
+  await expect(b.getByText('条记录在两台设备上都改过')).toHaveCount(0);
+  await page.getByRole('button', { name: '立即同步' }).click();
+  await page.goto('./#/vocab');
+  await expect(page.getByText('scene (B)')).toBeVisible();
+  await ctxB.close();
+});

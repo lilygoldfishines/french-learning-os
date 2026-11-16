@@ -21,6 +21,8 @@ import ConjugationPage from './pages/Conjugation';
 import { useTimer } from './features/timer';
 import { tr, trf } from './i18n';
 import { lang, setLang } from './i18n';
+import { startSync, useSyncStatus } from './sync/auto';
+import { ago } from './sync/SyncPanel';
 
 export const NAV: { group: string; items: { to: string; label: string; soon?: boolean }[] }[] = [
   { group: tr('今天'), items: [{ to: '/', label: tr('控制台') }, { to: '/review', label: tr('复习') }] },
@@ -58,11 +60,33 @@ function Sidebar({ onQuick }: { onQuick: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="mt-auto flex gap-3 px-2 pt-6 text-xs" role="group" aria-label="Language">
+      <SyncLine />
+      <div className="flex gap-3 px-2 pt-3 text-xs" role="group" aria-label="Language">
         <button className={lang === 'zh' ? 'font-semibold text-ink' : 'text-muted'} aria-pressed={lang === 'zh'} onClick={() => lang !== 'zh' && setLang('zh')}>中文</button>
         <button className={lang === 'en' ? 'font-semibold text-ink' : 'text-muted'} aria-pressed={lang === 'en'} onClick={() => lang !== 'en' && setLang('en')}>English</button>
       </div>
     </aside>
+  );
+}
+
+function SyncLine() {
+  const s = useSyncStatus();
+  if (!s.signedIn) return <div className="mt-auto" />;
+  return (
+    <NavLink to="/settings" className="mt-auto block px-2 pt-6 text-xs text-muted">
+      {s.state === 'syncing' ? tr('同步中…') : s.state === 'error' ? tr('同步出错') : s.state === 'offline' ? tr('离线') : trf('已同步 · {0}', ago(s.lastSyncAt))}
+    </NavLink>
+  );
+}
+
+function ConflictBanner() {
+  const s = useSyncStatus();
+  if (!s.conflicts) return null;
+  return (
+    <div className="border-b border-warn/30 bg-[#fbf3e2] px-4 py-2 text-sm text-warn">
+      {trf('{0} 条记录在两台设备上都改过。', s.conflicts)}
+      <NavLink to="/settings" className="ml-2 underline">{tr('去处理')}</NavLink>
+    </div>
   );
 }
 
@@ -113,7 +137,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [quick, setQuick] = useState(false);
   useEffect(() => {
-    bootstrap().then(() => setReady(true));
+    bootstrap().then(() => { setReady(true); void startSync(); });
     requestPersistence();
   }, []);
   useEffect(() => {
@@ -135,6 +159,7 @@ export default function App() {
           <Sidebar onQuick={() => setQuick(true)} />
           <div className="min-w-0 flex-1">
             <TimerBar />
+            <ConflictBanner />
             <BackupBanner />
             <main className="mx-auto max-w-5xl px-4 pt-6 pb-28 md:px-8 md:pb-12">
               <Routes>

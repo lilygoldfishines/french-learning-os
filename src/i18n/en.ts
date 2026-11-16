@@ -643,5 +643,18 @@ const EN: Record<string, string> = {
   "名词": "Nouns", "形容词": "Adjectives", "代词": "Pronouns", "时态": "Tenses", "否定": "Negation", "疑问": "Questions",
   "限定词": "Determiners", "动词": "Verbs", "从句": "Clauses", "语式": "Moods", "句法": "Syntax", "条件": "Conditionals",
   "逻辑": "Logic", "语篇": "Discourse", "语义": "Semantics",
+  /* cloud sync */
+  "云同步": "Cloud sync", "刚刚": "just now", "{0} 分钟前": "{0} min ago", "{0} 小时前": "{0} h ago",
+  "已保留这台设备的版本": "Kept this device's version", "已换成另一台设备的版本": "Switched to the other device's version",
+  "这台设备": "This device", "另一台设备": "Other device", "保留这台设备的": "Keep this device's", "用另一台设备的": "Use the other device's",
+  "在每台设备上用同一个账号登录，数据就会自动同步。不登录也可以照常离线使用。": "Sign in with the same account on each device and your data syncs automatically. Without signing in, everything still works offline.",
+  "邮箱": "Email", "密码（至少 6 位）": "Password (at least 6 characters)", "登录": "Sign in", "注册新账号": "Create account",
+  "确认邮件已发出。请在邮件里点确认链接，然后回到这里用同一个邮箱和密码登录。": "Confirmation email sent. Click the link in it, then come back here and sign in with the same email and password.",
+  "第一次在这台设备登录时，这台设备上已有的数据会和云端合并，不会被删除。": "The first time you sign in on a device, the data already on it is merged with the cloud — nothing is deleted.",
+  "已登录：{0}": "Signed in: {0}", "同步中…": "Syncing…", "离线，联网后自动同步": "Offline — will sync when back online", "同步出错：{0}": "Sync error: {0}",
+  "上次同步：{0}": "Last synced: {0}", " · {0} 条待上传": " · {0} waiting to upload", "同步完成": "Sync complete", "立即同步": "Sync now", "退出登录": "Sign out",
+  "打开应用、回到应用、修改数据后几秒，以及每 3 分钟，都会自动同步。": "Syncs automatically when you open or return to the app, a few seconds after you change something, and every 3 minutes.",
+  "{0} 条记录在两台设备上都改过，请选择保留哪个版本": "{0} records were changed on two devices — choose which version to keep",
+  "同步出错": "Sync error", "离线": "Offline", "已同步 · {0}": "Synced · {0}", "{0} 条记录在两台设备上都改过。": "{0} records were changed on two devices.", "去处理": "Resolve",
 };
 export default EN;

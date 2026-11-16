@@ -22,6 +22,8 @@ export class FlosDB extends Dexie {
   assessment!: Table<Assessment, string>;
   retro!: Table<Retro, string>;
   meta!: Table<MetaRow, string>;
+  syncState!: Table<SyncState, string>;
+  conflicts!: Table<Conflict, string>;
 
   constructor(name = 'french-learning-os') {
     super(name);
@@ -41,8 +43,15 @@ export class FlosDB extends Dexie {
       retro: 'id, [scope+period], updatedAt, deletedAt',
       meta: 'key',
     });
+    // v2: sync bookkeeping (device-local, never exported or synced)
+    this.version(2).stores({ syncState: 'key', conflicts: 'key' });
   }
 }
+
+/** Per record: the local rev and server version at the last successful sync. key = "<table>|<id>". */
+export interface SyncState { key: string; localRev: number; version: number }
+/** A record changed on this device and on another one since the last sync. */
+export interface Conflict { key: string; tbl: TableName; id: string; local: SystemFields & Record<string, unknown>; remote: SystemFields & Record<string, unknown>; version: number; at: string }
 
 export const TABLES = [
   'vocab', 'grammar', 'expression', 'sentence', 'error', 'link', 'card', 'reviewLog', 'goal', 'timeBlock', 'session',

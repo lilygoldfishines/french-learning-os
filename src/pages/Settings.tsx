@@ -7,6 +7,7 @@ import { download, exportAll, markBackedUp, restore, verifyBackup, type Backup }
 import { Button, Field, Input, PageHeader, Section, Select, useToast } from '../ui/kit';
 import { aiFillVocab, AiError, DEFAULT_MODEL, saveAiConfig, useAiConfig } from '../ai/fill';
 import { tr, trf } from '../i18n';
+import SyncPanel from '../sync/SyncPanel';
 import { lang, setLang } from '../i18n';
 
 function AiSection() {
@@ -84,6 +85,8 @@ export default function SettingsPage() {
           <p className="mt-2 text-xs text-muted">只改变界面文字，你的学习内容不变。 · Changes the interface only; your study content stays as it is.</p>
         </Section>
 
+        <SyncPanel />
+
         <Section title={tr('备份')}>
           <p className="text-sm">{tr('上次备份：')}{last ? new Date(last).toLocaleString('zh-CN') : tr('从未')}</p>
           <p className="mt-1 text-xs text-muted">{tr('完整备份包含所有数据（含已删除记录），带校验和。建议存到 iCloud Drive 或 Google Drive。')}</p>
@@ -158,7 +161,7 @@ export default function SettingsPage() {
 
         <Section title={tr('关于')}>
           <p className="text-sm text-muted">{tr('French Learning OS · 版本')} {__BUILD__}</p>
-          <p className="mt-1 text-sm text-muted">{tr('数据只保存在这台设备上（云同步将在下一阶段加入）。')}</p>
+          
           <Button className="mt-3" disabled={updating} onClick={async () => {
             setUpdating(true);
             const reg = await navigator.serviceWorker?.getRegistration();
