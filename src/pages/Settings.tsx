@@ -5,6 +5,44 @@ import { requestPersistence, saveSettings, useSettings } from '../db/bootstrap';
 import { CEFR_LEVELS, type Cefr } from '../db/types';
 import { download, exportAll, markBackedUp, restore, verifyBackup, type Backup } from '../io/backup';
 import { Button, Field, Input, PageHeader, Section, Select, useToast } from '../ui/kit';
+import { aiFillVocab, AiError, DEFAULT_MODEL, saveAiConfig, useAiConfig } from '../ai/fill';
+
+function AiSection() {
+  const toast = useToast();
+  const cfg = useAiConfig();
+  const [key, setKey] = useState('');
+  const [model, setModel] = useState(DEFAULT_MODEL);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState('');
+  useEffect(() => { if (cfg) setModel(cfg.model); }, [cfg?.model]);
+  return (
+    <Section title="AI 助手（可选）">
+      <p className="text-sm text-muted">填入你自己的 Claude API 密钥后，新词可以一键补全阴阳性、音标、中英文释义、例句和搭配。不填也能正常使用所有其他功能。</p>
+      {cfg ? (
+        <div className="mt-3 space-y-2 text-sm">
+          <div>✓ 已设置密钥（…{cfg.apiKey.slice(-4)}）· 模型 {cfg.model}</div>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={testing} onClick={async () => {
+              setTesting(true); setResult('');
+              try { const f = await aiFillVocab('la scène', cfg); setResult(`✓ 连接正常：${f.article} ${f.lemma} · ${f.gender} · ${f.defEn} · ${f.defZh}`); }
+              catch (e) { setResult(`✗ ${e instanceof AiError ? e.message : String(e)}`); }
+              setTesting(false);
+            }}>{testing ? '测试中…' : '测试连接'}</Button>
+            <Button kind="danger" onClick={async () => { await saveAiConfig(null); toast('已删除密钥'); }}>删除密钥</Button>
+          </div>
+          {result && <p className={result.startsWith('✓') ? 'text-good' : 'text-bad'}>{result}</p>}
+        </div>
+      ) : (
+        <form className="mt-3 grid gap-3 md:grid-cols-[1fr_12rem_auto] md:items-end" onSubmit={async (e) => { e.preventDefault(); await saveAiConfig({ apiKey: key, model }); setKey(''); toast('密钥已保存在本机'); }}>
+          <Field label="API 密钥"><Input type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-…" /></Field>
+          <Field label="模型"><Input value={model} onChange={(e) => setModel(e.target.value)} /></Field>
+          <Button kind="primary" type="submit" disabled={!key.trim()}>保存</Button>
+        </form>
+      )}
+      <p className="mt-3 text-xs text-muted">密钥只存在这台设备上，不会写进备份文件，也不会同步到其他地方。使用 AI 补全时，你输入的词会发送给 Anthropic 处理。密钥在 console.anthropic.com 创建，按用量付费。</p>
+    </Section>
+  );
+}
 
 const LABEL: Record<string, string> = {
   vocab: '词汇', grammar: '语法', expression: '表达', sentence: '句子', error: '错误', link: '关联', card: '复习卡', reviewLog: '复习记录',
@@ -80,6 +118,8 @@ export default function SettingsPage() {
             </div>
           )}
         </Section>
+
+        <AiSection />
 
         <Section title="复习">
           <div className="grid gap-3 md:grid-cols-3">

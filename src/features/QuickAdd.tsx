@@ -5,6 +5,8 @@ import { ACTIVITY_LABEL, ACTIVITY_TYPES, ERROR_TYPE_LABEL, ERROR_TYPES, POS, POS
 import { Button, Field, Input, Modal, Select, Textarea, cx, useToast } from '../ui/kit';
 import { startTimer, stopTimer, useTimer } from './timer';
 import { insert } from '../db/db';
+import { aiFillVocab, AiError, useAiConfig, type FilledVocab } from '../ai/fill';
+import { displayLemma } from '../db/rules';
 
 type Tab = 'word' | 'expr' | 'error' | 'time';
 
@@ -32,6 +34,22 @@ function WordForm({ done }: { done: () => void }) {
   const [def, setDef] = useState('');
   const [dupWarn, setDupWarn] = useState('');
   const [err, setErr] = useState('');
+  const ai = useAiConfig();
+  const [fill, setFill] = useState<FilledVocab | null>(null);
+  const [busy, setBusy] = useState(false);
+  const runAi = async () => {
+    if (!ai) return;
+    setBusy(true); setErr('');
+    try {
+      const f = await aiFillVocab(lemma, ai, { posHint: pos === 'noun' ? undefined : pos });
+      setFill(f);
+      setLemma(f.pos === 'noun' && f.article ? displayLemma(f) : f.lemma);
+      setPos(f.pos);
+      setGender(f.gender);
+      setDef(f.defEn ?? '');
+    } catch (e) { setErr(e instanceof AiError ? e.message : String(e)); }
+    setBusy(false);
+  };
 
   const onLemma = (v: string) => {
     setLemma(v);
@@ -43,9 +61,9 @@ function WordForm({ done }: { done: () => void }) {
     const art = article ?? (pos === 'noun' ? (gender === 'f' ? 'la' : gender === 'm' ? 'le' : '') : '');
     const finalArt = art && /^[aeiouéèêàâîïôûœ]/i.test(bare) && (art === 'le' || art === 'la') ? "l'" : art;
     try {
-      await addVocab({ ...emptyVocab(), lemma: bare, article: finalArt, pos, gender: pos === 'noun' ? gender : 'none', defEn: def }, { allowPossibleDup: allowDup });
+      await addVocab({ ...emptyVocab(), ...(fill ?? {}), lemma: bare, article: pos === 'noun' ? finalArt : '', pos, gender: pos === 'noun' ? gender : 'none', defEn: def }, { allowPossibleDup: allowDup });
       toast(`已记录：${lemma}`);
-      setLemma(''); setDef(''); setGender('none'); setDupWarn(''); setErr('');
+      setLemma(''); setDef(''); setGender('none'); setDupWarn(''); setErr(''); setFill(null);
       done();
     } catch (e) {
       if (e instanceof ValidationError && e.message.startsWith('可能重复')) setDupWarn(e.message);
@@ -54,10 +72,26 @@ function WordForm({ done }: { done: () => void }) {
   };
   return (
     <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); save(); }}>
-      <Field label="法语（可以带冠词，如 la scène）"><Input autoFocus lang="fr" className="fr text-lg" value={lemma} onChange={(e) => onLemma(e.target.value)} /></Field>
+      <div>
+        <span className="mb-1 block text-xs text-muted" aria-hidden="true">法语（可以带冠词，如 la scène）</span>
+        <div className="flex gap-2">
+          <Input autoFocus lang="fr" aria-label="法语（可以带冠词，如 la scène）" className="fr text-lg" value={lemma} onChange={(e) => { onLemma(e.target.value); setFill(null); }} />
+          {ai && <Button type="button" className="shrink-0 whitespace-nowrap" disabled={!lemma.trim() || busy} onClick={runAi}>{busy ? '查询中…' : 'AI 补全'}</Button>}
+        </div>
+      </div>
       <Field label="词性"><Select value={pos} onChange={(e) => setPos(e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>
-      {pos === 'noun' && <Field label="阴阳性（名词必填）"><GenderPicker value={gender} onChange={setGender} /></Field>}
-      <Field label="英文释义（可稍后补全）"><Input value={def} onChange={(e) => setDef(e.target.value)} /></Field>
+      {pos === 'noun' && <Field group label="阴阳性（名词必填）"><GenderPicker value={gender} onChange={setGender} /></Field>}
+      <Field label={ai ? '英文释义' : '英文释义（可稍后补全）'}><Input value={def} onChange={(e) => setDef(e.target.value)} /></Field>
+      {fill && (
+        <div className="space-y-1 rounded-md border border-line bg-panel p-3 text-sm" aria-label="AI 补全结果">
+          {fill.ipa && <div className="fr-meta text-muted">/{fill.ipa}/{fill.plural ? ` · pl. ${fill.plural}` : ''}{fill.cefr ? ` · ${fill.cefr}` : ''}</div>}
+          {fill.defZh && <div>{fill.defZh}</div>}
+          {fill.examples[0] && <div className="fr italic">« {fill.examples[0].fr} »</div>}
+          {fill.examples[0]?.zh && <div className="text-muted">{fill.examples[0].zh}</div>}
+          {fill.notes && <div className="text-xs text-muted">{fill.notes}</div>}
+          <div className="text-xs text-faint">保存时会一起存入词库，之后可在词汇页修改</div>
+        </div>
+      )}
       {err && <p className="text-sm text-bad">{err}</p>}
       {dupWarn && (
         <div className="rounded-md border border-warn/40 bg-[#fbf3e2] p-3 text-sm text-warn">

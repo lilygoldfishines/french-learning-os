@@ -41,7 +41,7 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
         <Field label="自然度"><Select value={x.naturalness ?? ''} onChange={(e) => set('naturalness', e.target.value)} options={[{ value: '', label: '—' }, ...NATURALNESS.map((n) => ({ value: n, label: NATURALNESS_LABEL[n] }))]} /></Field>
       </div>
       <Field label="使用语境"><Input value={x.context ?? ''} onChange={(e) => set('context', e.target.value)} placeholder="如：和剧组同事闲聊；正式邮件开头" /></Field>
-      <Field label="例句"><ExamplesEditor value={x.examples} onChange={(v) => set('examples', v)} /></Field>
+      <Field group label="例句"><ExamplesEditor value={x.examples} onChange={(v) => set('examples', v)} /></Field>
       <Field label="示例对话"><Textarea lang="fr" className="fr" rows={4} value={x.dialogue ?? ''} onChange={(e) => set('dialogue', e.target.value)} placeholder={'— …\n— …'} /></Field>
       <Field label="笔记"><Textarea rows={2} value={x.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
       {err && <p className="text-sm text-bad">{err}</p>}

@@ -4,6 +4,8 @@ import { displayLemma } from '../db/rules';
 import type { SystemFields, Vocab } from '../db/types';
 
 export const APP_ID = 'french-learning-os';
+/** Device-local meta that must never leave the device (API key) or be restored (backup timestamp, running timer). */
+export const NON_EXPORTED_META = ['lastBackupAt', 'aiConfig', 'timer'];
 
 export interface Backup {
   app: string;
@@ -29,7 +31,7 @@ export async function exportAll(): Promise<Backup> {
     data[t] = rows;
     counts[t] = rows.length;
   }
-  const meta = (await db.meta.toArray()).filter((m) => m.key !== 'lastBackupAt');
+  const meta = (await db.meta.toArray()).filter((m) => !NON_EXPORTED_META.includes(m.key));
   const checksum = await sha256(JSON.stringify(data));
   return { app: APP_ID, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), counts, checksum, data, meta };
 }
@@ -83,7 +85,7 @@ export async function restore(b: Backup, mode: 'merge' | 'replace'): Promise<Res
         } else report.skipped++;
       }
     }
-    for (const m of b.meta ?? []) {
+    for (const m of (b.meta ?? []).filter((x) => !NON_EXPORTED_META.includes(x.key))) {
       if (mode === 'replace' || !(await db.meta.get(m.key))) await db.meta.put(m);
     }
   });

@@ -46,7 +46,18 @@ export function Section({ title, children, aside, className }: { title?: string;
   );
 }
 
-export function Field({ label, hint, error, children, className }: { label: string; hint?: string; error?: string; children: ReactNode; className?: string }) {
+/** `group`: for controls that are not a single input (button groups, lists) — a <label> must not wrap buttons. */
+export function Field({ label, hint, error, children, className, group }: { label: string; hint?: string; error?: string; children: ReactNode; className?: string; group?: boolean }) {
+  if (group) {
+    return (
+      <div role="group" aria-label={label} className={cx('block', className)}>
+        <span className="mb-1 block text-xs text-muted">{label}</span>
+        {children}
+        {hint && !error && <span className="mt-1 block text-xs text-faint">{hint}</span>}
+        {error && <span className="mt-1 block text-xs text-bad">{error}</span>}
+      </div>
+    );
+  }
   return (
     <label className={cx('block', className)}>
       <span className="mb-1 block text-xs text-muted">{label}</span>
@@ -69,7 +80,7 @@ export function Select({ options, ...p }: SelectHTMLAttributes<HTMLSelectElement
 }
 
 /** Comma / Enter separated list editor. */
-export function TagsInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+export function TagsInput({ value, onChange, placeholder, label }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string; label?: string }) {
   const [draft, setDraft] = useState('');
   const commit = () => {
     const parts = draft.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
@@ -85,6 +96,7 @@ export function TagsInput({ value, onChange, placeholder }: { value: string[]; o
         </span>
       ))}
       <input
+        aria-label={label}
         className="min-w-[6rem] flex-1 bg-transparent outline-none"
         value={draft}
         placeholder={value.length ? '' : placeholder}

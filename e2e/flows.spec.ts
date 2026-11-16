@@ -234,3 +234,57 @@ test('10 · study timer: start, survives reload, stop records a session', async 
   await expect(page.getByText('被动输入', { exact: false }).first()).toBeVisible();
   await expect(page.getByText(/· 1 分钟/)).toBeVisible();
 });
+
+test('11 · AI fill: key in settings, quick add fills gender + definitions, editor fills only blanks', async ({ page }) => {
+  let calls = 0;
+  await page.route('https://api.anthropic.com/v1/messages', async (route) => {
+    calls++;
+    const req = route.request();
+    expect(req.headers()['anthropic-dangerous-direct-browser-access']).toBe('true');
+    const word = JSON.parse(req.postData() ?? '{}').messages[0].content as string;
+    const isScene = /sc[eè]ne/.test(word);
+    await route.fulfill({
+      status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({ content: [{ type: 'tool_use', id: 't', name: 'fill_vocab_entry', input: isScene
+        ? { lemma: 'scène', article: 'la', gender: 'f', pos: 'noun', plural: 'scènes', ipa: 'sɛn', defEn: 'scene; stage', defZh: '场景；舞台', examples: [{ fr: 'On tourne la scène demain.', en: 'We shoot the scene tomorrow.', zh: '我们明天拍这场戏。' }], topics: ['cinema'], cefr: 'A2' }
+        : { lemma: 'cadrage', article: 'le', gender: 'm', pos: 'noun', defEn: 'framing', defZh: '构图', examples: [{ fr: 'Le cadrage est serré.', en: 'The framing is tight.', zh: '构图很紧。' }], cefr: 'B2' } }] }),
+    });
+  });
+  await go(page, '/settings');
+  await page.getByLabel('API 密钥').fill('sk-ant-test-1234');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.getByText('已设置密钥（…1234）')).toBeVisible();
+
+  await openQuick(page);
+  const dlg = page.getByRole('dialog', { name: '快速记录' });
+  await dlg.getByLabel('法语（可以带冠词').fill('scene');
+  await dlg.getByRole('button', { name: 'AI 补全' }).click();
+  await expect(dlg.getByLabel('法语（可以带冠词')).toHaveValue('la scène');
+  await expect(dlg.getByRole('button', { name: 'la · 阴性' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dlg.getByLabel('英文释义')).toHaveValue('scene; stage');
+  await expect(dlg.getByLabel('AI 补全结果')).toContainText('场景；舞台');
+  await dlg.getByRole('button', { name: '保存' }).click();
+  await page.getByRole('button', { name: '关闭' }).click();
+  await go(page, '/vocab');
+  await page.getByRole('button', { name: /la scène/ }).click();
+  const ed = page.getByRole('dialog', { name: '编辑词条' });
+  await expect(ed.getByLabel('中文解释')).toHaveValue('场景；舞台');
+  await expect(ed.getByLabel('IPA 音标')).toHaveValue('sɛn');
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  // a word added without AI, then filled from the editor: learner's own definition survives
+  await page.getByRole('button', { name: '＋ 新词' }).click();
+  const ne = page.getByRole('dialog', { name: '新词' });
+  await ne.getByLabel('法语词条').fill('cadrage');
+  await ne.getByRole('button', { name: 'le · 阳性' }).click();
+  await ne.getByLabel('英文释义').fill('my framing');
+  await ne.getByRole('button', { name: 'AI 补全' }).click();
+  await expect(ne.getByLabel('中文解释')).toHaveValue('构图');
+  await expect(ne.getByLabel('英文释义')).toHaveValue('my framing');
+  expect(calls).toBe(2);
+});
+
+test('12 · AI fill is hidden without a key', async ({ page }) => {
+  await openQuick(page);
+  await expect(page.getByRole('dialog', { name: '快速记录' }).getByRole('button', { name: 'AI 补全' })).toHaveCount(0);
+});

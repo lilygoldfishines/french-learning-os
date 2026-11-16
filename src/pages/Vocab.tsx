@@ -11,6 +11,7 @@ import { GenderPicker } from '../features/QuickAdd';
 import { ExamplesEditor } from '../features/ListEditors';
 import ImportPreview from '../features/ImportPreview';
 import { buildPreview, type PreviewRow } from '../io/aiImport';
+import { aiFillVocab, AiError, mergeFill, useAiConfig } from '../ai/fill';
 import { KnowledgeTabs } from './More';
 
 type Draft = Omit<Vocab, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev'> & { id?: string };
@@ -20,6 +21,19 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
   const [v, setV] = useState<Draft>(initial);
   const [problems, setProblems] = useState<string[]>([]);
   const [dup, setDup] = useState(false);
+  const ai = useAiConfig();
+  const [busy, setBusy] = useState(false);
+  const runAi = async () => {
+    if (!ai) return;
+    setBusy(true); setProblems([]);
+    try {
+      const word = v.article ? (v.article.endsWith("'") ? `${v.article}${v.lemma}` : `${v.article} ${v.lemma}`) : v.lemma;
+      const f = await aiFillVocab(word, ai, { posHint: v.id ? v.pos : undefined });
+      setV((cur) => mergeFill(cur, f));
+      toast('已补全空白字段');
+    } catch (e) { setProblems([e instanceof AiError ? e.message : String(e)]); }
+    setBusy(false);
+  };
   const set = <K extends keyof Draft>(k: K, val: Draft[K]) => setV((x) => ({ ...x, [k]: val }));
   const save = async (allowDup = false) => {
     try {
@@ -38,12 +52,18 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
   };
   return (
     <div className="space-y-4">
+      {ai && (
+        <div className="flex items-center justify-between rounded-md bg-accent-soft px-3 py-2 text-sm">
+          <span className="text-muted">只填空白字段，不会覆盖你已经写的内容</span>
+          <Button disabled={!v.lemma.trim() || busy} onClick={runAi}>{busy ? '查询中…' : 'AI 补全'}</Button>
+        </div>
+      )}
       <div className="grid gap-3 md:grid-cols-[6rem_1fr_10rem]">
         <Field label="冠词"><Input lang="fr" className="fr" value={v.article ?? ''} onChange={(e) => set('article', e.target.value)} placeholder="le / la / l'" /></Field>
         <Field label="法语词条 *"><Input lang="fr" className="fr text-lg" value={v.lemma} onChange={(e) => set('lemma', e.target.value)} /></Field>
         <Field label="词性 *"><Select value={v.pos} onChange={(e) => set('pos', e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>
       </div>
-      {v.pos === 'noun' && <Field label="阴阳性 *"><GenderPicker value={v.gender} onChange={(g) => set('gender', g)} /></Field>}
+      {v.pos === 'noun' && <Field group label="阴阳性 *"><GenderPicker value={v.gender} onChange={(g) => set('gender', g)} /></Field>}
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="复数"><Input lang="fr" value={v.plural ?? ''} onChange={(e) => set('plural', e.target.value)} /></Field>
         <Field label="IPA 音标"><Input value={v.ipa ?? ''} onChange={(e) => set('ipa', e.target.value)} /></Field>
@@ -53,13 +73,13 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
         <Field label="英文释义"><Textarea rows={2} value={v.defEn ?? ''} onChange={(e) => set('defEn', e.target.value)} /></Field>
         <Field label="中文解释"><Textarea rows={2} value={v.defZh ?? ''} onChange={(e) => set('defZh', e.target.value)} /></Field>
       </div>
-      <Field label="例句"><ExamplesEditor value={v.examples} onChange={(x) => set('examples', x)} /></Field>
+      <Field group label="例句"><ExamplesEditor value={v.examples} onChange={(x) => set('examples', x)} /></Field>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="同义词"><TagsInput value={v.synonyms} onChange={(x) => set('synonyms', x)} /></Field>
-        <Field label="反义词"><TagsInput value={v.antonyms} onChange={(x) => set('antonyms', x)} /></Field>
-        <Field label="相关词汇"><TagsInput value={v.related} onChange={(x) => set('related', x)} /></Field>
-        <Field label="常见搭配"><TagsInput value={v.collocations} onChange={(x) => set('collocations', x)} /></Field>
-        <Field label="常见介词"><TagsInput value={v.prepositions} onChange={(x) => set('prepositions', x)} placeholder="à, de, sur…" /></Field>
+        <Field group label="同义词"><TagsInput label="同义词" value={v.synonyms} onChange={(x) => set('synonyms', x)} /></Field>
+        <Field group label="反义词"><TagsInput label="反义词" value={v.antonyms} onChange={(x) => set('antonyms', x)} /></Field>
+        <Field group label="相关词汇"><TagsInput label="相关词汇" value={v.related} onChange={(x) => set('related', x)} /></Field>
+        <Field group label="常见搭配"><TagsInput label="常见搭配" value={v.collocations} onChange={(x) => set('collocations', x)} /></Field>
+        <Field group label="常见介词"><TagsInput label="常见介词" value={v.prepositions} onChange={(x) => set('prepositions', x)} placeholder="à, de, sur…" /></Field>
         {v.pos === 'verb' && <Field label="动词变位要点"><Input value={v.conjugation ?? ''} onChange={(e) => set('conjugation', e.target.value)} placeholder="如：3e groupe, pp. pris" /></Field>}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
@@ -119,6 +139,32 @@ export default function VocabPage() {
   const [editing, setEditing] = useState<Draft | null>(null);
   const [batch, setBatch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const ai = useAiConfig();
+  const toast = useToast();
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const incomplete = (list ?? []).filter((v) => !v.defEn && !v.defZh);
+  const bulkFill = async () => {
+    if (!ai || !incomplete.length) return;
+    let ok = 0;
+    const errors: string[] = [];
+    setBulk({ done: 0, total: incomplete.length });
+    for (const [i, v] of incomplete.entries()) {
+      try {
+        const word = v.article ? (v.article.endsWith("'") ? `${v.article}${v.lemma}` : `${v.article} ${v.lemma}`) : v.lemma;
+        const f = await aiFillVocab(word, ai, { posHint: v.pos });
+        const { id, createdAt, updatedAt, deletedAt, rev, ...rest } = mergeFill({ ...v }, f);
+        void createdAt; void updatedAt; void deletedAt; void rev;
+        await saveVocab(id, { ...rest, lemma: v.lemma, article: v.article, pos: v.pos });
+        ok++;
+      } catch (e) {
+        errors.push(`${v.lemma}：${(e as Error).message}`);
+        if (e instanceof AiError && /密钥|余额|离线|连接/.test(e.message)) break;
+      }
+      setBulk({ done: i + 1, total: incomplete.length });
+    }
+    setBulk(null);
+    toast(errors.length ? `补全 ${ok} 个，失败 ${errors.length} 个：${errors[0]}` : `已补全 ${ok} 个词`, errors.length ? 'bad' : 'good');
+  };
 
   const rows = useMemo(() => {
     if (!list) return [];
@@ -136,6 +182,7 @@ export default function VocabPage() {
     <div>
       <KnowledgeTabs />
       <PageHeader title="词汇" sub={`${list?.length ?? 0} 个词条`} actions={<>
+        {ai && incomplete.length > 0 && <Button onClick={bulkFill} disabled={!!bulk}>{bulk ? `补全中 ${bulk.done}/${bulk.total}` : `AI 补全 ${incomplete.length} 个缺释义的词`}</Button>}
         <Button onClick={() => setBatch(true)}>批量录入</Button>
         <Button kind="primary" onClick={() => setEditing({ ...emptyVocab() })}>＋ 新词</Button>
       </>} />
