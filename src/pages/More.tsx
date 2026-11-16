@@ -6,9 +6,9 @@ import { PageHeader, cx } from '../ui/kit';
 export function KnowledgeTabs() {
   const items = NAV.find((g) => g.group === '知识库')!.items;
   return (
-    <nav className="-mx-4 mb-4 flex gap-1 overflow-x-auto px-4 text-sm md:hidden" aria-label="知识库">
+    <nav className="-mx-4 mb-4 flex gap-5 overflow-x-auto border-b border-line px-4 text-[15px] md:hidden" aria-label="知识库">
       {items.map((i) => (
-        <NavLink key={i.to} to={i.to} className={({ isActive }) => cx('rounded-full border px-3 py-1 whitespace-nowrap', isActive ? 'border-ink bg-ink text-paper' : 'border-line')}>{i.label}</NavLink>
+        <NavLink key={i.to} to={i.to} className={({ isActive }) => cx('-mb-px border-b-2 py-2 whitespace-nowrap', isActive ? 'border-ink font-medium text-ink' : 'border-transparent text-muted')}>{i.label}</NavLink>
       ))}
     </nav>
   );

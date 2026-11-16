@@ -91,7 +91,7 @@ export default function GrammarPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input className="max-w-xs" placeholder="搜索" value={q} onChange={(e) => setQ(e.target.value)} aria-label="搜索语法" />
         {(['', ...CEFR_LEVELS] as const).map((l) => (
-          <button key={l || 'all'} onClick={() => setLevel(l)} className={cx('rounded-full border px-3 py-1 text-sm', level === l ? 'border-ink bg-ink text-paper' : 'border-line')}>{l || '全部'}</button>
+          <button key={l || 'all'} onClick={() => setLevel(l)} className={cx('rounded-md border px-3 py-1 text-sm', level === l ? 'border-ink bg-ink text-paper' : 'border-line')}>{l || '全部'}</button>
         ))}
         <label className="ml-auto flex items-center gap-1 text-sm text-muted"><input type="checkbox" checked={hideSkipped} onChange={(e) => setHideSkipped(e.target.checked)} />隐藏已跳过</label>
       </div>

@@ -52,7 +52,7 @@ test('2 · vocab: quick add with gender, gender required, duplicate, edit, searc
   await go(page, '/vocab');
   const row = page.getByRole('button', { name: /la scène/ });
   await expect(row).toBeVisible();
-  await expect(row.getByText('阴性 f.')).toBeVisible();
+  await expect(row.getByText('n. f.')).toBeVisible();
   await row.click();
   const ed = page.getByRole('dialog', { name: '编辑词条' });
   await ed.getByLabel('中文解释').fill('场景');

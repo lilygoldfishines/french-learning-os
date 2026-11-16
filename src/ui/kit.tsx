@@ -19,11 +19,12 @@ export function Button({ kind = 'ghost', className, ...p }: ButtonHTMLAttributes
   );
 }
 
-export function PageHeader({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) {
+export function PageHeader({ title, sub, actions, eyebrow }: { title: string; sub?: string; actions?: ReactNode; eyebrow?: string }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-ink pb-4">
       <div>
-        <h1 className="font-serif text-2xl md:text-3xl">{title}</h1>
+        {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
+        <h1 className="text-[28px] leading-tight md:text-[34px]">{title}</h1>
         {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -36,7 +37,7 @@ export function Section({ title, children, aside, className }: { title?: string;
     <section className={cx('rounded-lg border border-line bg-panel p-4 md:p-5', className)}>
       {(title || aside) && (
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          {title && <h2 className="text-xs font-semibold tracking-wider text-muted uppercase">{title}</h2>}
+          {title && <h2 className="eyebrow">{title}</h2>}
           {aside}
         </div>
       )}
@@ -101,6 +102,17 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
     accent: 'border-accent/30 text-accent', m: 'border-masc/30 text-masc', f: 'border-fem/30 text-fem',
   }[tone];
   return <span className={cx('inline-flex items-center rounded border px-1.5 py-px text-xs whitespace-nowrap', t)}>{children}</span>;
+}
+
+/** Dictionary-style italic tag, e.g. "n. f." — colour carries gender for nouns. */
+export function GramTag({ pos, gender }: { pos: string; gender?: string }) {
+  const short: Record<string, string> = {
+    noun: 'n.', verb: 'v.', adjective: 'adj.', adverb: 'adv.', preposition: 'prép.', conjunction: 'conj.', pronoun: 'pron.',
+    determiner: 'dét.', interjection: 'interj.', phrase: 'loc.',
+  };
+  const g = pos === 'noun' && gender && gender !== 'none' ? (gender === 'm-f' ? ' m./f.' : ` ${gender}.`) : '';
+  const tone = pos === 'noun' ? (gender === 'f' ? 'text-fem' : gender === 'm' ? 'text-masc' : 'text-muted') : 'text-muted';
+  return <span className={cx('fr-meta text-[15px] whitespace-nowrap', tone)}>{short[pos] ?? pos}{g}</span>;
 }
 
 export function Empty({ children }: { children: ReactNode }) {

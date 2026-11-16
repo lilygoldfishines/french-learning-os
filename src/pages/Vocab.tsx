@@ -4,9 +4,9 @@ import { all, remove } from '../db/db';
 import { addVocab, emptyVocab, saveVocab, ValidationError } from '../db/items';
 import { displayLemma, normalize } from '../db/rules';
 import {
-  CEFR_LEVELS, GENDER_LABEL, LEARN_STATUS, LEARN_STATUS_LABEL, POS, POS_LABEL, TOPIC_LABEL, VOCAB_TOPICS, type Gender, type Pos, type Vocab,
+  CEFR_LEVELS, LEARN_STATUS, LEARN_STATUS_LABEL, POS, POS_LABEL, TOPIC_LABEL, VOCAB_TOPICS, type Gender, type Pos, type Vocab,
 } from '../db/types';
-import { Badge, Button, Empty, Field, Input, Modal, PageHeader, Select, TagsInput, Textarea, useToast } from '../ui/kit';
+import { Button, GramTag, Empty, Field, Input, Modal, PageHeader, Select, TagsInput, Textarea, useToast } from '../ui/kit';
 import { GenderPicker } from '../features/QuickAdd';
 import { ExamplesEditor } from '../features/ListEditors';
 import ImportPreview from '../features/ImportPreview';
@@ -163,14 +163,13 @@ export default function VocabPage() {
               <button className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-paper" onClick={() => setEditing(v)}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="fr text-lg">{displayLemma(v)}</span>
-                    {v.pos === 'noun' && v.gender !== 'none' && <Badge tone={v.gender === 'f' ? 'f' : v.gender === 'm' ? 'm' : 'neutral'}>{GENDER_LABEL[v.gender]}</Badge>}
-                    <span className="text-xs text-muted">{POS_LABEL[v.pos]}</span>
+                    <span className="fr text-[21px]">{displayLemma(v)}</span>
+                    <GramTag pos={v.pos} gender={v.gender} />
                   </div>
                   <div className="truncate text-sm text-muted">{[v.defEn, v.defZh].filter(Boolean).join(' · ') || '—'}</div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  {v.cefr && <Badge>{v.cefr}</Badge>}
+                  {v.cefr && <span className="text-xs text-muted">{v.cefr}</span>}
                   <span className="text-xs text-faint">{LEARN_STATUS_LABEL[v.status]}</span>
                 </div>
               </button>

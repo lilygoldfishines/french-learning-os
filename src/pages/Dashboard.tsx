@@ -75,6 +75,7 @@ export default function Dashboard() {
     <div>
       <PageHeader
         title="控制台"
+        eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
         sub={`目标：${settings.targetLevel}，${settings.targetDate} 前 · 本周从 ${ws} 开始`}
         actions={<Link to="/review"><Button kind="primary">复习 {dueCount > 0 ? `· ${dueCount}` : ''}</Button></Link>}
       />

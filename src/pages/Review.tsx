@@ -5,8 +5,8 @@ import { db } from '../db/db';
 import { useSettings } from '../db/bootstrap';
 import { buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs';
 import { displayLemma } from '../db/rules';
-import { ERROR_TYPE_LABEL, GENDER_LABEL, POS_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
-import { Badge, Button, Empty, PageHeader } from '../ui/kit';
+import { ERROR_TYPE_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
+import { Button, Empty, GramTag, PageHeader } from '../ui/kit';
 
 type Item = Vocab | Expression | Sentence | Grammar | ErrorEntry;
 
@@ -14,7 +14,7 @@ function Front({ card, item }: { card: CardRecord; item: Item }) {
   switch (card.itemType) {
     case 'vocab': {
       const v = item as Vocab;
-      return <><div className="fr text-4xl">{displayLemma(v)}</div><div className="mt-2 text-sm text-muted">{POS_LABEL[v.pos]}</div></>;
+      return <div className="fr text-[52px] leading-[1.05]">{displayLemma(v)}</div>;
     }
     case 'expression': return <div className="fr text-3xl">{(item as Expression).text}</div>;
     case 'sentence': return <div className="fr text-2xl leading-snug">{(item as Sentence).fr}</div>;
@@ -32,21 +32,22 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
       const v = item as Vocab;
       return (
         <div className="space-y-2">
-          <div className="flex flex-wrap justify-center gap-2">
-            {v.pos === 'noun' && <Badge tone={v.gender === 'f' ? 'f' : v.gender === 'm' ? 'm' : 'neutral'}>{GENDER_LABEL[v.gender]}</Badge>}
-            {v.ipa && <span className="text-sm text-muted">/{v.ipa}/</span>}
-            {v.plural && <span className="text-sm text-muted">pl. {v.plural}</span>}
+          <div className="flex flex-wrap items-baseline justify-center gap-2">
+            <GramTag pos={v.pos} gender={v.gender} />
+            {v.ipa && <span className="fr-meta text-[15px] text-muted">/{v.ipa.replace(/^\/|\/$/g, '')}/</span>}
+            {v.plural && <span className="fr-meta text-[15px] text-muted">pl. {v.plural}</span>}
           </div>
-          {v.defEn && <div className="text-lg">{v.defEn}</div>}
-          {v.defZh && <div className="text-muted">{v.defZh}</div>}
-          {v.examples[0] && <div className="fr mt-2 text-muted italic">{v.examples[0].fr}</div>}
+          <div className="mx-auto my-2 h-px w-10 bg-ink" />
+          {v.defEn && <div className="text-[17px]">{v.defEn}</div>}
+          {v.defZh && <div className="text-[15px] text-muted">{v.defZh}</div>}
+          {v.examples[0] && <div className="fr mt-2 text-[17px] leading-relaxed italic">« {v.examples[0].fr} »</div>}
           {!v.defEn && !v.defZh && <div className="text-sm text-faint">还没有释义，可以去词汇库补全</div>}
         </div>
       );
     }
     case 'expression': {
       const x = item as Expression;
-      return <div className="space-y-1">{x.defEn && <div className="text-lg">{x.defEn}</div>}{x.defZh && <div className="text-muted">{x.defZh}</div>}{x.examples[0] && <div className="fr text-muted italic">{x.examples[0].fr}</div>}</div>;
+      return <div className="space-y-1">{x.defEn && <div className="text-lg">{x.defEn}</div>}{x.defZh && <div className="text-muted">{x.defZh}</div>}{x.examples[0] && <div className="fr text-[17px] italic">« {x.examples[0].fr} »</div>}</div>;
     }
     case 'sentence': {
       const s = item as Sentence;
@@ -66,7 +67,7 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
 const BUTTONS: { r: Grade; label: string; cls: string }[] = [
   { r: Rating.Again, label: '忘了', cls: 'border-bad/40 text-bad' },
   { r: Rating.Hard, label: '困难', cls: 'border-warn/40 text-warn' },
-  { r: Rating.Good, label: '记得', cls: 'border-good/40 text-good' },
+  { r: Rating.Good, label: '记得', cls: 'border-ink bg-ink text-paper [&_div]:text-paper/70' },
   { r: Rating.Easy, label: '简单', cls: 'border-accent/40 text-accent' },
 ];
 
@@ -113,7 +114,7 @@ export default function Review() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <PageHeader title="复习" sub={`本次已复习 ${done} · 剩余 ${remaining}（新卡 ${queue.fresh.length}）${queue.overdueDeferred ? ` · ${queue.overdueDeferred} 张顺延` : ''}`} />
+      <PageHeader title="复习" eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} sub={`本次已复习 ${done} · 剩余 ${remaining}（新卡 ${queue.fresh.length}）${queue.overdueDeferred ? ` · ${queue.overdueDeferred} 张顺延` : ''}`} />
       {!current ? (
         <Empty>
           今天的复习完成了。{queue.overdueDeferred ? `还有 ${queue.overdueDeferred} 张积压会分到之后几天。` : ''}
@@ -123,7 +124,7 @@ export default function Review() {
         <>
           <button
             onClick={() => setFlipped(true)}
-            className="flex min-h-[46vh] w-full flex-col items-center justify-center rounded-xl border border-line bg-panel p-6 text-center"
+            className="flex min-h-[46vh] w-full flex-col items-center justify-center rounded-md border border-line bg-panel p-6 text-center"
             aria-label={flipped ? '卡片背面' : '点击翻面'}
           >
             <Front card={current.card} item={current.item} />
@@ -133,7 +134,7 @@ export default function Review() {
             {flipped ? (
               <div className="grid grid-cols-4 gap-2">
                 {BUTTONS.map((b, i) => (
-                  <button key={b.r} onClick={() => rate(b.r)} className={`rounded-lg border bg-panel py-3 text-sm ${b.cls}`}>
+                  <button key={b.r} onClick={() => rate(b.r)} className={`rounded-md border border-line bg-panel py-3 text-sm ${b.cls}`}>
                     <div className="font-medium">{b.label}</div>
                     <div className="text-[11px] text-muted">{iv?.[b.r]}</div>
                     <div className="hidden text-[10px] text-faint md:block">{i + 1}</div>

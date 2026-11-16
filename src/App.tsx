@@ -35,7 +35,7 @@ function Sidebar({ onQuick }: { onQuick: () => void }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-line px-4 py-6 md:flex">
       <div className="mb-6 px-2">
-        <div className="font-serif text-lg leading-tight">French Learning OS</div>
+        <div className="font-display text-xl leading-tight">French Learning OS</div>
         <div className="text-xs text-muted">个人法语学习系统</div>
       </div>
       <button onClick={onQuick} className="mb-5 rounded-md bg-ink px-3 py-2 text-left text-sm text-paper">＋ 快速记录 <span className="float-right text-paper/50">N</span></button>
@@ -47,7 +47,7 @@ function Sidebar({ onQuick }: { onQuick: () => void }) {
               i.soon ? (
                 <div key={i.label} className="px-2 py-1 text-faint">{i.label} <span className="text-[10px]">· 第四阶段</span></div>
               ) : (
-                <NavLink key={i.to} to={i.to} end className={({ isActive }) => cx('block rounded px-2 py-1', isActive ? 'bg-accent-soft text-accent' : 'hover:bg-line/50')}>
+                <NavLink key={i.to} to={i.to} end className={({ isActive }) => cx('block rounded px-2 py-1', isActive ? 'bg-line/70 font-medium text-ink' : 'text-muted hover:text-ink')}>
                   {i.label}
                 </NavLink>
               ),
@@ -61,7 +61,7 @@ function Sidebar({ onQuick }: { onQuick: () => void }) {
 
 function BottomNav({ onQuick }: { onQuick: () => void }) {
   const tab = (to: string, label: string, end = false) => (
-    <NavLink to={to} end={end} className={({ isActive }) => cx('flex flex-1 flex-col items-center py-2 text-xs', isActive ? 'text-accent' : 'text-muted')}>
+    <NavLink to={to} end={end} className={({ isActive }) => cx('flex flex-1 flex-col items-center py-2 text-xs', isActive ? 'font-semibold text-ink' : 'text-muted')}>
       {label}
     </NavLink>
   );

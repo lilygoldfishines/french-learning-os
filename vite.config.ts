@@ -29,7 +29,19 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
+      workbox: {
+        // Latin fonts are precached for offline use. The Chinese serif (思源宋体) ships as ~100
+        // unicode-range slices; only the slices a page needs are downloaded, then cached.
+        globPatterns: ['**/*.{js,css,html,svg,png}', '**/*latin*.woff2'],
+        globIgnores: ['**/noto-serif-sc-*'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\.woff2?$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'fonts', expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+        ],
+      },
     }),
   ],
   test: {
