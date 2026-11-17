@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import type { Grade } from 'ts-fsrs';
 import { db } from '../db/db';
 import { useSettings } from '../db/bootstrap';
-import { allowMoreNewToday, buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs';
+import { buildLearnQueue, buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs';
+import { TypeFilter, useTypeChoice } from '../features/TypeFilter';
 import { displayLemma } from '../db/rules';
 import { ERROR_TYPE_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
 import { Button, Empty, GramTag, PageHeader } from '../ui/kit';
 import { tr, trf } from '../i18n';
+import { KIND_LABEL } from '../io/aiImport';
 import { SpeakButton } from '../features/Speak';
 import { bilingualName } from '../i18n';
 
@@ -82,17 +84,21 @@ export default function Review() {
   const [current, setCurrent] = useState<{ card: CardRecord; item: Item } | null>(null);
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(0);
+  const [type, setType] = useTypeChoice('review');
+  const [toLearn, setToLearn] = useState(0);
 
   const load = useCallback(async () => {
     const q = await buildQueue(settings);
     setQueue(q);
-    for (const card of [...q.due, ...q.fresh]) {
+    setToLearn((await buildLearnQueue(settings)).entries.length);
+    // first-time items live on the Learn page; here only what is due
+    for (const card of q.due.filter((c) => !type || c.itemType === type)) {
       const table = (db as unknown as Record<string, { get(id: string): Promise<Item | undefined> }>)[card.itemType];
       const item = await table.get(card.itemId);
       if (item && !item.deletedAt) { setCurrent({ card, item }); setFlipped(false); return; }
     }
     setCurrent(null);
-  }, [settings]);
+  }, [settings, type]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -114,27 +120,23 @@ export default function Review() {
   }, [flipped, rate]);
 
   if (!queue) return null;
-  const remaining = queue.due.length + queue.fresh.length;
+  const due = queue.due.filter((c) => !type || c.itemType === type);
+  const counts = queue.due.reduce((m, c) => ({ ...m, [c.itemType]: (m[c.itemType] ?? 0) + 1 }), {} as Record<string, number>);
   const iv = current ? previewIntervals(current.card, settings.retention) : null;
 
   return (
     <div className="mx-auto max-w-xl">
-      <PageHeader title={tr('复习')} eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} sub={trf('本次已复习 {0} · 剩余 {1}（新卡 {2}）{3}', done, remaining, queue.fresh.length, queue.overdueDeferred ? trf(' · {0} 张顺延', queue.overdueDeferred) : '')} />
+      <PageHeader title={tr('复习')} eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} sub={trf('本次已复习 {0} · 剩余 {1}{2}', done, due.length, queue.overdueDeferred ? trf(' · {0} 张顺延', queue.overdueDeferred) : '')} />
+      <TypeFilter value={type} onChange={setType} counts={counts} />
       {!current ? (
         <Empty>
-          {tr('今天的复习完成了。')}{queue.overdueDeferred ? trf('还有 {0} 张积压会分到之后几天。', queue.overdueDeferred) : ''}
-          {queue.freshWaiting > 0 ? (
-            <div className="mt-3 space-y-3">
-              <p>{trf('今天的新卡上限（{0} 张）已经学完，还有 {1} 张新卡在排队。', queue.newLimit, queue.freshWaiting)}</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button kind="primary" onClick={async () => { await allowMoreNewToday(Math.min(5, queue.freshWaiting)); await load(); }}>
-                  {trf('今天再学 {0} 张', Math.min(5, queue.freshWaiting))}
-                </Button>
-                <Link to="/settings" className="self-center text-sm text-accent underline">{tr('调整每日上限')}</Link>
-              </div>
+          {type && queue.due.length > 0 ? trf('{0}都复习完了。', KIND_LABEL[type]) : tr('今天的复习完成了。')}
+          {queue.overdueDeferred ? trf('还有 {0} 张积压会分到之后几天。', queue.overdueDeferred) : ''}
+          {toLearn > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <span>{trf('还有 {0} 个新内容可以学。', toLearn)}</span>
+              <Link to="/learn"><Button kind="primary">{tr('去学习')}</Button></Link>
             </div>
-          ) : (
-            <div className="mt-3"><Link to="/vocab" className="text-accent underline">{tr('去添加新词')}</Link></div>
           )}
         </Empty>
       ) : (

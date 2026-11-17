@@ -4,7 +4,7 @@ import { addExpression, addVocab, emptyVocab, logError, recordCorrectUse, record
 import { deriveErrorStatus, displayLemma, normalize } from './rules';
 import { bootstrap } from './bootstrap';
 import { allowMoreNewToday, buildQueue, ensureCard, grade, Rating } from '../srs';
-import { DEFAULT_SETTINGS, type ErrorEntry, type Vocab } from './types';
+import { DEFAULT_SETTINGS, type ErrorEntry, type Grammar, type Vocab } from './types';
 import { exportAll, restore, verifyBackup, vocabToCsv, csvToVocabItems, vocabToQuizlet } from '../io/backup';
 import { buildPreview, commit, extractItems } from '../io/aiImport';
 
@@ -250,5 +250,37 @@ describe('batch lines for expressions and grammar', async () => {
   it('vocab: with "|" a Chinese ； no longer splits the line', () => {
     expect(parseBatchLine('la scène | scene | 场景；舞台', 'noun')).toMatchObject({ defZh: '场景；舞台' });
     expect(parseBatchLine('tourner;to shoot;拍摄', 'verb')).toMatchObject({ lemma: 'tourner', defEn: 'to shoot', defZh: '拍摄' });
+  });
+});
+
+describe('learn queue', () => {
+  it('mixes kinds, includes grammar points with content, filters by kind, and hands learnt items to review', async () => {
+    const { buildLearnQueue, learn } = await import('../srs');
+
+    await bootstrap(); // 59 built-in grammar points, all empty → not learnable
+    await addVocab(noun('cadrage', 'm'));
+    await addExpression({ text: 'avoir le cafard', defZh: '情绪低落', defEn: '', context: '', register: 'courant', category: '', examples: [], dialogue: '', naturalness: '', notes: '' });
+    const g = (await all<Grammar>('grammar'))[0];
+    const s = { ...DEFAULT_SETTINGS, dailyNewLimit: 15 };
+    const now = new Date('2026-11-17T09:00:00');
+
+    let q = await buildLearnQueue(s, undefined, now);
+    expect(q.entries.map((e) => e.itemType)).toEqual(['vocab', 'expression']);
+    await update<Grammar>('grammar', g.id, { structure: 'être + participe passé' });
+    q = await buildLearnQueue(s, undefined, now);
+    expect(q.entries.map((e) => e.itemType)).toEqual(['vocab', 'expression', 'grammar']);
+    expect(q.byType).toEqual({ vocab: 1, expression: 1, grammar: 1 });
+    expect((await buildLearnQueue(s, ['grammar'], now)).entries).toHaveLength(1);
+
+    const gEntry = q.entries[2];
+    expect(gEntry.cardId).toBeUndefined();
+    await learn(gEntry, Rating.Good, s);
+    q = await buildLearnQueue(s, undefined, new Date());
+    expect(q.entries.map((e) => e.itemType)).toEqual(['vocab', 'expression']);
+    expect(q.newToday).toBe(1);
+    const rq = await buildQueue(s, new Date(Date.now() + 15 * 60000));
+    expect(rq.due.map((c) => c.itemType)).toEqual(['grammar']); // comes back in review shortly
+    await update<Grammar>('grammar', (await all<Grammar>('grammar'))[1].id, { structure: 'x', skipped: true });
+    expect((await buildLearnQueue(s)).byType.grammar ?? 0).toBe(0); // skipped points stay out
   });
 });

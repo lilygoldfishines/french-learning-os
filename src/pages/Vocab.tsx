@@ -108,7 +108,7 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
 }
 
 /** Read-only page for one word; editing is one tap away. */
-export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
+export function VocabView({ v, onEdit }: { v: Vocab; onEdit?: () => void }) {
   const word = displayLemma(v);
   const lists: [string, string[]][] = [
     [tr('同义词'), v.synonyms], [tr('反义词'), v.antonyms], [tr('相关词汇'), v.related],

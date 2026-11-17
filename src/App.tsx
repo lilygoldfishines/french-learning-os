@@ -7,6 +7,7 @@ import { ToastProvider, cx } from './ui/kit';
 import QuickAdd from './features/QuickAdd';
 import Dashboard from './pages/Dashboard';
 import Review from './pages/Review';
+import Learn from './pages/Learn';
 import VocabPage from './pages/Vocab';
 import GrammarPage from './pages/Grammar';
 import ExpressionsPage from './pages/Expressions';
@@ -25,7 +26,7 @@ import { startSync, useSyncStatus } from './sync/auto';
 import { ago } from './sync/SyncPanel';
 
 export const NAV: { group: string; items: { to: string; label: string; soon?: boolean }[] }[] = [
-  { group: tr('今天'), items: [{ to: '/', label: tr('控制台') }, { to: '/review', label: tr('复习') }] },
+  { group: tr('今天'), items: [{ to: '/', label: tr('控制台') }, { to: '/learn', label: tr('学习') }, { to: '/review', label: tr('复习') }] },
   { group: tr('知识库'), items: [
     { to: '/vocab', label: tr('词汇') }, { to: '/grammar', label: tr('语法') }, { to: '/expressions', label: tr('表达') },
     { to: '/sentences', label: tr('句子') }, { to: '/errors', label: tr('错误库') },
@@ -99,6 +100,7 @@ function BottomNav({ onQuick }: { onQuick: () => void }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-line bg-paper/95 backdrop-blur md:hidden" aria-label={tr('主导航')}>
       {tab('/', tr('今天'), true)}
+      {tab('/learn', tr('学习'))}
       {tab('/review', tr('复习'))}
       <button onClick={onQuick} aria-label={tr('快速记录')} className="mx-2 -mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-2xl text-paper shadow">{tr('＋')}</button>
       {tab('/vocab', tr('知识库'))}
@@ -164,6 +166,7 @@ export default function App() {
             <main className="mx-auto max-w-5xl px-4 pt-6 pb-28 md:px-8 md:pb-12">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/learn" element={<Learn />} />
                 <Route path="/review" element={<Review />} />
                 <Route path="/vocab" element={<VocabPage />} />
                 <Route path="/grammar" element={<GrammarPage />} />

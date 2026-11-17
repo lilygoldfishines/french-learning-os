@@ -137,7 +137,7 @@ export default function SettingsPage() {
 
         <Section title={tr('复习')}>
           <div className="grid gap-3 md:grid-cols-3">
-            <Field label={tr('每天新卡上限')}><Input type="number" min={0} value={s.dailyNewLimit} onChange={(e) => saveSettings({ dailyNewLimit: Number(e.target.value) })} /></Field>
+            <Field label={tr('每天学习新内容上限')}><Input type="number" min={0} value={s.dailyNewLimit} onChange={(e) => saveSettings({ dailyNewLimit: Number(e.target.value) })} /></Field>
             <Field label={tr('每天复习上限')} hint={tr('超出部分顺延到之后几天')}><Input type="number" min={10} value={s.dailyReviewLimit} onChange={(e) => saveSettings({ dailyReviewLimit: Number(e.target.value) })} /></Field>
             <Field label={trf('目标记忆率 {0}%', Math.round(s.retention * 100))} hint={tr('越高复习越频繁')}>
               <input type="range" min={0.8} max={0.97} step={0.01} value={s.retention} onChange={(e) => saveSettings({ retention: Number(e.target.value) })} className="w-full" />

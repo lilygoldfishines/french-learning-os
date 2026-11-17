@@ -188,3 +188,8 @@ export function parseGrammarLine(line: string, defaultCefr: Cefr): {
     correctExamples: example ? [example] : [],
   };
 }
+
+/** A grammar point is worth studying once something beyond its name is written down. */
+export function grammarHasContent(g: { structure?: string; explanationEn?: string; explanationZh?: string; correctExamples?: string[]; conditions?: string }): boolean {
+  return !!(g.structure?.trim() || g.explanationEn?.trim() || g.explanationZh?.trim() || g.conditions?.trim() || g.correctExamples?.some((e) => e.trim()));
+}

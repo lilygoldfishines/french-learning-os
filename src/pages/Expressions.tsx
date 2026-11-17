@@ -57,7 +57,7 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
-function ExpressionView({ x, onEdit }: { x: Expression; onEdit: () => void }) {
+export function ExpressionView({ x, onEdit }: { x: Expression; onEdit?: () => void }) {
   return (
     <article className="space-y-5">
       <header>

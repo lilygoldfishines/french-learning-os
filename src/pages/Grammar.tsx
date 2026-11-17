@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, db, remove, update } from '../db/db';
 import { addGrammar, ValidationError } from '../db/items';
-import { ensureCard } from '../srs';
+import { ensureCard, grammarLearnable } from '../srs';
 import { CEFR_LEVELS, type Cefr, type Grammar } from '../db/types';
 import { Badge, Button, Field, Input, Modal, PageHeader, Select, Textarea, cx, useToast } from '../ui/kit';
 import { LinesEditor } from '../features/ListEditors';
@@ -30,8 +30,9 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   const save = async () => {
     try {
       const { id, ...rest } = g;
-      if (id) await update<Grammar>('grammar', id, rest);
-      else await addGrammar(rest);
+      if (id) {
+        await update<Grammar>('grammar', id, rest);
+      } else await addGrammar(rest);
       toast(tr('已保存'));
       onClose();
     } catch (e) { setErr(e instanceof ValidationError ? e.message : String(e)); }
@@ -65,7 +66,7 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
       <div className="flex flex-wrap justify-between gap-2">
         <div className="flex gap-2">
           {g.id && <Button kind="danger" onClick={async () => { if (confirm(tr('删除？'))) { await remove('grammar', g.id!); onClose(); } }}>{tr('删除')}</Button>}
-          {g.id && !inReview && <Button onClick={async () => { await ensureCard('grammar', g.id!); toast(tr('已加入复习')); }}>{tr('加入复习')}</Button>}
+          {g.id && !inReview && <Button onClick={async () => { await ensureCard('grammar', g.id!); toast(tr('已加入学习')); }}>{tr('加入学习')}</Button>}
         </div>
         <div className="flex gap-2"><Button onClick={onClose}>{tr('取消')}</Button><Button kind="primary" onClick={save}>{tr('保存')}</Button></div>
       </div>
@@ -73,9 +74,10 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
-function GrammarView({ g, onEdit }: { g: Grammar; onEdit: () => void }) {
+export function GrammarView({ g, onEdit }: { g: Grammar; onEdit?: () => void }) {
   const toast = useToast();
-  const inReview = useLiveQuery(async () => !!(await db.card.where('[itemType+itemId]').equals(['grammar', g.id]).filter((c) => !c.deletedAt).first()), [g.id]);
+  // null = no card yet; otherwise the card's FSRS state (0 = not studied yet)
+  const card = useLiveQuery(async () => (await db.card.where('[itemType+itemId]').equals(['grammar', g.id]).filter((c) => !c.deletedAt).first()) ?? null, [g.id]);
   const empty = !g.structure && !g.explanationEn && !g.explanationZh && !g.conditions && !g.correctExamples.length && !g.incorrectExamples.length && !g.commonErrors && !g.exceptions && !g.notes;
   return (
     <article className="space-y-5">
@@ -120,8 +122,9 @@ function GrammarView({ g, onEdit }: { g: Grammar; onEdit: () => void }) {
         </div>
       </ReadSection>
       <ReadFooter onEdit={onEdit}>
-        {inReview === false && <Button onClick={async () => { await ensureCard('grammar', g.id); toast(tr('已加入复习')); }}>{tr('加入复习')}</Button>}
-        {inReview && <span className="self-center text-sm text-muted">{tr('✓ 已在复习中')}</span>}
+        {card === null && !grammarLearnable(g) && <Button onClick={async () => { await ensureCard('grammar', g.id); toast(tr('已加入学习')); }}>{tr('加入学习')}</Button>}
+        {((card === null && grammarLearnable(g)) || card?.state === 0) && <span className="self-center text-sm text-muted">{tr('✓ 在学习队列中')}</span>}
+        {card && card.state !== 0 && <span className="self-center text-sm text-muted">{tr('✓ 已在复习中')}</span>}
       </ReadFooter>
     </article>
   );

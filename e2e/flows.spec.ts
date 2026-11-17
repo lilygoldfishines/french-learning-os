@@ -73,14 +73,20 @@ test('2 · vocab: quick add with gender, gender required, duplicate, edit, searc
   await expect(page.getByText('还没有词汇')).toBeVisible();
 });
 
-test('3 · review: new card can be flipped and graded', async ({ page }) => {
+test('3 · learn a new card, then review it: flip and grade', async ({ page }) => {
   await openQuick(page);
   const dlg = page.getByRole('dialog', { name: '快速记录' });
   await dlg.getByLabel('法语（可以带冠词').fill('le montage');
   await dlg.getByLabel('英文释义').fill('editing');
   await dlg.getByRole('button', { name: '保存' }).click();
   await page.getByRole('button', { name: '关闭' }).click();
-  await go(page, '/review');
+  await go(page, '/review'); // new items are learnt first, on the Learn page
+  await expect(page.getByText('还有 1 个新内容可以学。')).toBeVisible();
+  await page.getByRole('button', { name: '去学习' }).click();
+  await expect(page.getByTestId('learn-card').getByRole('heading', { name: 'le montage' })).toBeVisible();
+  await page.getByRole('button', { name: '学会了', exact: true }).click();
+  await expect(page.getByText('没有新内容要学了。')).toBeVisible();
+  await page.getByRole('link', { name: '复习', exact: true }).last().click();
   await expect(page.getByRole('button', { name: '点击翻面' })).toContainText('le montage');
   await page.waitForTimeout(500); // the card must stay unflipped until asked (regression: queue reload loop)
   await page.getByRole('button', { name: '显示答案' }).click();
@@ -503,7 +509,7 @@ test('16 · sign-in: wrong password explained; forgot password → email link �
 
 test('17 · daily new-card limit: waiting cards are explained and "learn more today" releases them', async ({ page }) => {
   await go(page, '/settings');
-  await page.getByLabel('每天新卡上限').fill('1');
+  await page.getByLabel('每天学习新内容上限').fill('1');
   await go(page, '/'); // leave the field: the N shortcut is ignored while typing in a box
   for (const w of ['le plan', 'la prise']) {
     await openQuick(page);
@@ -512,12 +518,11 @@ test('17 · daily new-card limit: waiting cards are explained and "learn more to
     await dlg.getByRole('button', { name: '保存' }).click();
     await page.getByRole('button', { name: '关闭' }).click();
   }
-  await go(page, '/review');
-  await page.getByRole('button', { name: '显示答案' }).click();
-  await page.getByRole('button', { name: /^简单/ }).click();
-  await expect(page.getByText('今天的新卡上限（1 张）已经学完，还有 1 张新卡在排队。')).toBeVisible();
-  await page.getByRole('button', { name: '今天再学 1 张' }).click();
-  await expect(page.getByRole('button', { name: '显示答案' })).toBeVisible();
+  await go(page, '/learn');
+  await page.getByRole('button', { name: '学会了', exact: true }).click();
+  await expect(page.getByText('今天的新内容上限（1 个）已经学完，还有 1 个在排队。')).toBeVisible();
+  await page.getByRole('button', { name: '今天再学 1 个' }).click();
+  await expect(page.getByTestId('learn-card')).toBeVisible();
 });
 
 test("18 · batch add: l' nouns with (f.) marks import; a missing gender can be chosen in the preview", async ({ page }) => {
@@ -620,8 +625,7 @@ test('21 · grammar, expressions and sentences open in a reading view; Edit lead
   await ed.getByRole('button', { name: '保存', exact: true }).click();
   await expect(view.getByText('être + participe passé')).toBeVisible();
   await expect(view.getByText('这个语法点还没有内容')).toHaveCount(0);
-  await view.getByRole('button', { name: '加入复习' }).click();
-  await expect(view.getByText('✓ 已在复习中')).toBeVisible();
+  await expect(view.getByText('✓ 在学习队列中')).toBeVisible(); // with content, it joins Learn on its own
   await view.getByRole('button', { name: '关闭' }).click();
   await expect(page.getByRole('button', { name: /^被动语态 Voix passive/ }).getByText('了解')).toBeVisible();
 
@@ -658,4 +662,47 @@ test('21 · grammar, expressions and sentences open in a reading view; Edit lead
   await page.getByRole('dialog', { name: '编辑句子' }).getByLabel('中文').fill('我们明天黎明开拍。');
   await page.getByRole('dialog', { name: '编辑句子' }).getByRole('button', { name: '保存', exact: true }).click();
   await expect(view.getByText('我们明天黎明开拍。')).toBeVisible();
+});
+
+test('22 · Learn and Review cover words, expressions, sentences and grammar, with a kind filter', async ({ page }) => {
+  await go(page, '/data');
+  await page.getByLabel('粘贴 JSON').fill(JSON.stringify({
+    vocab: [{ lemma: 'cadrage', article: 'le', gender: 'm', pos: 'noun', defEn: 'framing' }],
+    expressions: [{ text: 'avoir le cafard', defZh: '情绪低落' }],
+    sentences: [{ fr: 'On tourne demain.', zh: '我们明天开拍。' }],
+    grammar: [{ name: 'Le subjonctif après bien que', cefr: 'B2', structure: 'bien que + subjonctif' }],
+  }));
+  await page.getByRole('button', { name: '校验并预览' }).click();
+  await page.getByRole('button', { name: '确认导入' }).click();
+  await expect(page.getByText(/导入 4 条/)).toBeVisible();
+
+  await go(page, '/learn');
+  const kinds = page.getByRole('group', { name: '内容类型' });
+  await expect(kinds.getByRole('button', { name: '全部 4' })).toBeVisible();
+  for (const k of ['词汇 1', '表达 1', '句子 1', '语法 1']) await expect(kinds.getByRole('button', { name: k })).toBeVisible();
+  const card = page.getByTestId('learn-card');
+  // kinds take turns: word, expression, sentence, grammar
+  await expect(card.getByRole('heading', { name: 'le cadrage' })).toBeVisible();
+  await page.getByRole('button', { name: '稍后再看' }).click();
+  await expect(card.getByRole('heading', { name: 'avoir le cafard' })).toBeVisible();
+  await kinds.getByRole('button', { name: '语法 1' }).click();
+  await expect(card.getByRole('heading', { name: 'Le subjonctif après bien que' })).toBeVisible();
+  await expect(card.getByText('bien que + subjonctif')).toBeVisible();
+  await page.getByRole('button', { name: '学会了', exact: true }).click();
+  await expect(page.getByText('没有要学的语法了。')).toBeVisible();
+  await kinds.getByRole('button', { name: /^句子/ }).click();
+  await page.getByRole('button', { name: '学会了', exact: true }).click();
+  await kinds.getByRole('button', { name: /^全部/ }).click();
+  await expect(card.getByRole('heading', { name: 'le cadrage' })).toBeVisible();
+
+  await go(page, '/review');
+  const rk = page.getByRole('group', { name: '内容类型' });
+  await expect(rk.getByRole('button', { name: '全部 2' })).toBeVisible();
+  await rk.getByRole('button', { name: '语法 1' }).click();
+  await expect(page.getByRole('button', { name: '点击翻面' })).toContainText('Le subjonctif après bien que');
+  await page.getByRole('button', { name: '显示答案' }).click();
+  await page.getByRole('button', { name: /^简单/ }).click();
+  await expect(page.getByText('语法都复习完了。')).toBeVisible();
+  await rk.getByRole('button', { name: /^全部/ }).click();
+  await expect(page.getByRole('button', { name: '点击翻面' })).toContainText('On tourne demain.');
 });

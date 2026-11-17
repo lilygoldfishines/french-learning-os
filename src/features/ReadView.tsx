@@ -14,7 +14,8 @@ export function ReadSection({ title, children, show = true }: { title: string; c
 }
 
 /** Bottom bar of a reading page: optional extras on the left, Edit on the right. */
-export function ReadFooter({ onEdit, children }: { onEdit: () => void; children?: ReactNode }) {
+export function ReadFooter({ onEdit, children }: { onEdit?: () => void; children?: ReactNode }) {
+  if (!onEdit) return null; // used inside the learning card: no edit bar there
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
       <div className="flex flex-wrap gap-2">{children}</div>

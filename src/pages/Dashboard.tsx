@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, db } from '../db/db';
 import { useSettings } from '../db/bootstrap';
-import { buildConjQueue, buildQueue } from '../srs';
+import { buildConjQueue, buildLearnQueue, buildQueue } from '../srs';
 import { ACTIVITY_LABEL, CEFR_LEVELS, ERROR_TYPE_LABEL, LEARN_STATUS, LEARN_STATUS_LABEL, SKILLS, SKILL_LABEL, type Assessment, type ErrorEntry, type Goal, type Grammar, type Session, type TimeBlock, type Vocab } from '../db/types';
 import { fmtLevel, latestBySkill, levelIndex, suggestions, weekMinutes, weeklyHistory } from '../features/stats';
 import { Badge, Button, Empty, PageHeader, Progress, Section, Stat } from '../ui/kit';
@@ -53,6 +53,7 @@ export default function Dashboard() {
   }, []);
   const queue = useLiveQuery(() => buildQueue(settings), [settings]);
   const conj = useLiveQuery(() => buildConjQueue(settings), [settings]);
+  const learnQ = useLiveQuery(() => buildLearnQueue(settings), [settings]);
   if (!data) return null;
 
   const latest = latestBySkill(data.assess);
@@ -71,7 +72,8 @@ export default function Dashboard() {
   const topErrors = [...openErrors].sort((a, b) => b.occurrences.length - a.occurrences.length).slice(0, 5);
   const sugg = suggestions(latest, data.errors, settings.targetLevel);
   const recent = [...data.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 5);
-  const dueCount = (queue?.due.length ?? 0) + (queue?.fresh.length ?? 0);
+  const dueCount = queue?.due.length ?? 0;
+  const learnCount = learnQ?.entries.length ?? 0;
 
   return (
     <div>
@@ -79,7 +81,10 @@ export default function Dashboard() {
         title={tr('控制台')}
         eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
         sub={trf('目标：{0}，{1} 前 · 本周从 {2} 开始', settings.targetLevel, settings.targetDate, ws)}
-        actions={<Link to="/review"><Button kind="primary">{tr('复习')} {dueCount > 0 ? `· ${dueCount}` : ''}</Button></Link>}
+        actions={<>
+          <Link to="/learn"><Button>{tr('学习')} {learnCount > 0 ? `· ${learnCount}` : ''}</Button></Link>
+          <Link to="/review"><Button kind="primary">{tr('复习')} {dueCount > 0 ? `· ${dueCount}` : ''}</Button></Link>
+        </>}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -89,11 +94,11 @@ export default function Dashboard() {
           <p className="mt-3 text-xs text-faint">{tr('等级只来自带证据的评估记录，和学习时长、复习数量无关。黑框 = 目标等级。')}</p>
         </Section>
 
-        <Section title={tr('今天的复习')}>
+        <Section title={tr('今天的学习与复习')}>
           {queue ? (
             <div className="space-y-2">
-              <Stat label={tr('待复习')} value={queue.due.length} sub={queue.overdueDeferred ? trf('另有 {0} 张顺延到之后几天', queue.overdueDeferred) : undefined} />
-              <Stat label={tr('可学新卡')} value={queue.fresh.length} sub={queue.freshWaiting ? trf('另有 {0} 张超出今天上限', queue.freshWaiting) : trf('今天已复习 {0} 次', queue.reviewedToday)} />
+              <Link to="/learn" className="block"><Stat label={tr('今天可学')} value={learnCount} sub={learnQ?.waiting ? trf('另有 {0} 个超出今天上限', learnQ.waiting) : trf('今天已学 {0} 个', queue.newToday)} /></Link>
+              <Link to="/review" className="block"><Stat label={tr('待复习')} value={queue.due.length} sub={queue.overdueDeferred ? trf('另有 {0} 张顺延到之后几天', queue.overdueDeferred) : trf('今天已复习 {0} 次', queue.reviewedToday)} /></Link>
               {!!conj?.total && <Link to="/conjugation" className="block"><Stat label={tr('动词变位待练')} value={conj.due.length + conj.fresh.length} sub={tr('去练习 →')} /></Link>}
             </div>
           ) : null}

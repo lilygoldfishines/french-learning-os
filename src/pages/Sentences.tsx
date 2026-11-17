@@ -38,7 +38,7 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
-function SentenceView({ s, onEdit }: { s: Sentence; onEdit: () => void }) {
+export function SentenceView({ s, onEdit }: { s: Sentence; onEdit?: () => void }) {
   return (
     <article className="space-y-5">
       <div className="flex items-start gap-3">
