@@ -3,7 +3,7 @@ import { all, db, remove, update } from './db';
 import { addExpression, addVocab, emptyVocab, logError, recordCorrectUse, recordRecurrence, saveVocab, ValidationError } from './items';
 import { deriveErrorStatus, displayLemma, normalize } from './rules';
 import { bootstrap } from './bootstrap';
-import { buildQueue, grade, Rating } from '../srs';
+import { allowMoreNewToday, buildQueue, ensureCard, grade, Rating } from '../srs';
 import { DEFAULT_SETTINGS, type ErrorEntry, type Vocab } from './types';
 import { exportAll, restore, verifyBackup, vocabToCsv, csvToVocabItems, vocabToQuizlet } from '../io/backup';
 import { buildPreview, commit, extractItems } from '../io/aiImport';
@@ -107,6 +107,30 @@ describe('spaced repetition', () => {
     q = await buildQueue(s, now);
     expect(q.newToday).toBe(2);
     expect(q.fresh).toHaveLength(3);
+  });
+
+  it('conjugation practice does not use up the main new-card limit; "learn more today" raises it', async () => {
+    for (let i = 0; i < 17; i++) await addVocab(noun(`mot${i}`, 'm'));
+    const s = { ...DEFAULT_SETTINGS, dailyNewLimit: 15 };
+    const now = new Date('2026-11-17T00:30:00');
+    let q = await buildQueue(s, now);
+    for (const c of q.fresh.slice(0, 13)) await grade(c.id, Rating.Good, s, now);
+    // two conjugation cards learned today (the bug: these counted toward the 15)
+    for (const v of ['être|PRESENT', 'avoir|PRESENT']) {
+      const c = await ensureCard('conj', v);
+      await grade(c.id, Rating.Good, s, now);
+    }
+    q = await buildQueue(s, now);
+    expect(q.newToday).toBe(13);
+    expect(q.fresh).toHaveLength(2);
+    expect(q.freshWaiting).toBe(2);
+    await allowMoreNewToday(5, now);
+    q = await buildQueue(s, now);
+    expect(q.fresh).toHaveLength(4);
+    expect(q.freshWaiting).toBe(0);
+    // the extra is for today only
+    const tomorrow = await buildQueue(s, new Date('2026-11-18T09:00:00'));
+    expect(tomorrow.newLimit).toBe(15);
   });
 
   it('defers overdue reviews beyond the daily cap', async () => {

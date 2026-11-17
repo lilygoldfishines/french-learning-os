@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Grade } from 'ts-fsrs';
 import { db } from '../db/db';
 import { useSettings } from '../db/bootstrap';
-import { buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs';
+import { allowMoreNewToday, buildQueue, grade, previewIntervals, Rating, type Queue } from '../srs';
 import { displayLemma } from '../db/rules';
 import { ERROR_TYPE_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
 import { Button, Empty, GramTag, PageHeader } from '../ui/kit';
@@ -121,7 +121,19 @@ export default function Review() {
       {!current ? (
         <Empty>
           {tr('今天的复习完成了。')}{queue.overdueDeferred ? trf('还有 {0} 张积压会分到之后几天。', queue.overdueDeferred) : ''}
-          <div className="mt-3"><Link to="/vocab" className="text-accent underline">{tr('去添加新词')}</Link></div>
+          {queue.freshWaiting > 0 ? (
+            <div className="mt-3 space-y-3">
+              <p>{trf('今天的新卡上限（{0} 张）已经学完，还有 {1} 张新卡在排队。', queue.newLimit, queue.freshWaiting)}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button kind="primary" onClick={async () => { await allowMoreNewToday(Math.min(5, queue.freshWaiting)); await load(); }}>
+                  {trf('今天再学 {0} 张', Math.min(5, queue.freshWaiting))}
+                </Button>
+                <Link to="/settings" className="self-center text-sm text-accent underline">{tr('调整每日上限')}</Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3"><Link to="/vocab" className="text-accent underline">{tr('去添加新词')}</Link></div>
+          )}
         </Empty>
       ) : (
         <>

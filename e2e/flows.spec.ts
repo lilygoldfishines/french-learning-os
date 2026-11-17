@@ -491,3 +491,22 @@ test('16 · sign-in: wrong password explained; forgot password → email link �
   await expect(page.getByText(`已登录：${user.email}`)).toBeVisible();
   expect(calls).toContain('PUT /auth/v1/user');
 });
+
+test('17 · daily new-card limit: waiting cards are explained and "learn more today" releases them', async ({ page }) => {
+  await go(page, '/settings');
+  await page.getByLabel('每天新卡上限').fill('1');
+  await go(page, '/'); // leave the field: the N shortcut is ignored while typing in a box
+  for (const w of ['le plan', 'la prise']) {
+    await openQuick(page);
+    const dlg = page.getByRole('dialog', { name: '快速记录' });
+    await dlg.getByLabel('法语（可以带冠词').fill(w);
+    await dlg.getByRole('button', { name: '保存' }).click();
+    await page.getByRole('button', { name: '关闭' }).click();
+  }
+  await go(page, '/review');
+  await page.getByRole('button', { name: '显示答案' }).click();
+  await page.getByRole('button', { name: /^简单/ }).click();
+  await expect(page.getByText('今天的新卡上限（1 张）已经学完，还有 1 张新卡在排队。')).toBeVisible();
+  await page.getByRole('button', { name: '今天再学 1 张' }).click();
+  await expect(page.getByRole('button', { name: '显示答案' })).toBeVisible();
+});

@@ -661,5 +661,8 @@ const EN: Record<string, string> = {
   "新密码已设置": "New password saved", "请设置一个新密码。": "Choose a new password.", "新密码（至少 6 位）": "New password (at least 6 characters)", "保存新密码": "Save new password",
   "如果你是在 Safari 里打开的这封邮件：设好新密码后，回到主屏幕上的应用，用新密码登录。": "If this email opened in Safari: after setting the new password, go back to the home-screen app and sign in with it.",
   "忘记密码": "Forgot password", "重设密码的邮件已发出。点邮件里的链接，在打开的页面里设新密码。": "Password-reset email sent. Click its link and set a new password on the page that opens.",
+  /* daily new-card limit */
+  "今天的新卡上限（{0} 张）已经学完，还有 {1} 张新卡在排队。": "You've used today's new-card limit ({0}); {1} new cards are waiting.",
+  "今天再学 {0} 张": "Learn {0} more today", "调整每日上限": "Change daily limit", "另有 {0} 张超出今天上限": "{0} more beyond today's limit",
 };
 export default EN;

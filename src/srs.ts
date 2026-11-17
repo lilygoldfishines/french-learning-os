@@ -1,5 +1,5 @@
 import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs';
-import { db, nowIso, stamp, uid } from './db/db';
+import { db, getMeta, nowIso, setMeta, stamp, uid } from './db/db';
 import type { CardRecord, ItemType, Settings } from './db/types';
 import { localDate } from './db/rules';
 import { trf } from './i18n';
@@ -57,14 +57,28 @@ export interface Queue {
   overdueDeferred: number; // due cards beyond today's cap, spread to later days
   reviewedToday: number;
   newToday: number;
+  /** new cards that exist but are held back by today's new-card limit */
+  freshWaiting: number;
+  newLimit: number;
+}
+
+const extraKey = (day: string) => `extraNew:${day}`;
+/** "Learn N more today": raises today's new-card limit only. */
+export async function allowMoreNewToday(n: number, now = new Date()) {
+  const k = extraKey(localDate(now));
+  await setMeta(k, (await getMeta<number>(k, 0)) + n);
 }
 
 /** Build today's queue. Over-cap reviews are deferred, lowest-retrievability first is kept. */
 export async function buildQueue(settings: Settings, now = new Date()): Promise<Queue> {
   const f = scheduler(settings.retention);
   const today = localDate(now);
-  const cards = (await db.card.toArray()).filter((c) => !c.deletedAt && !c.suspended && c.itemType !== 'conj');
-  const logsToday = (await db.reviewLog.where('reviewedAt').aboveOrEqual(new Date(`${today}T00:00:00`).toISOString()).toArray());
+  const allCards = await db.card.toArray();
+  const cards = allCards.filter((c) => !c.deletedAt && !c.suspended && c.itemType !== 'conj');
+  // conjugation practice has its own queue and limits: its reviews must not use up the main daily limits
+  const conjIds = new Set(allCards.filter((c) => c.itemType === 'conj').map((c) => c.id));
+  const logsToday = (await db.reviewLog.where('reviewedAt').aboveOrEqual(new Date(`${today}T00:00:00`).toISOString()).toArray())
+    .filter((l) => !conjIds.has(l.cardId));
   const reviewedToday = logsToday.length;
   const newToday = new Set(logsToday.filter((l) => l.stateBefore === State.New).map((l) => l.cardId)).size;
 
@@ -81,12 +95,11 @@ export async function buildQueue(settings: Settings, now = new Date()): Promise<
   const reviewsDone = logsToday.filter((l) => l.stateBefore === State.Review).length;
   const reviewCap = Math.max(0, settings.dailyReviewLimit - reviewsDone);
   const due = dueAll.slice(0, reviewCap);
-  const newCap = Math.max(0, settings.dailyNewLimit - newToday);
-  const fresh = cards
-    .filter((c) => c.state === State.New)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-    .slice(0, newCap);
-  return { due, fresh, overdueDeferred: dueAll.length - due.length, reviewedToday, newToday };
+  const newLimit = settings.dailyNewLimit + (await getMeta<number>(extraKey(today), 0));
+  const newCap = Math.max(0, newLimit - newToday);
+  const allFresh = cards.filter((c) => c.state === State.New).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const fresh = allFresh.slice(0, newCap);
+  return { due, fresh, overdueDeferred: dueAll.length - due.length, reviewedToday, newToday, freshWaiting: allFresh.length - fresh.length, newLimit };
 }
 
 export async function grade(cardId: string, rating: Grade, settings: Settings, now = new Date()) {

@@ -93,7 +93,7 @@ export default function Dashboard() {
           {queue ? (
             <div className="space-y-2">
               <Stat label={tr('待复习')} value={queue.due.length} sub={queue.overdueDeferred ? trf('另有 {0} 张顺延到之后几天', queue.overdueDeferred) : undefined} />
-              <Stat label={tr('可学新卡')} value={queue.fresh.length} sub={trf('今天已复习 {0} 次', queue.reviewedToday)} />
+              <Stat label={tr('可学新卡')} value={queue.fresh.length} sub={queue.freshWaiting ? trf('另有 {0} 张超出今天上限', queue.freshWaiting) : trf('今天已复习 {0} 次', queue.reviewedToday)} />
               {!!conj?.total && <Link to="/conjugation" className="block"><Stat label={tr('动词变位待练')} value={conj.due.length + conj.fresh.length} sub={tr('去练习 →')} /></Link>}
             </div>
           ) : null}
