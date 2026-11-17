@@ -1,4 +1,4 @@
-import type { ErrorEntry, ErrorStatus, Expression, Vocab } from './types';
+import type { Cefr, ErrorEntry, ErrorStatus, Expression, Vocab } from './types';
 import { tr } from '../i18n';
 
 const ARTICLE_RE = /^(le|la|les|un|une|des|du|de la|de l'|l'|l’)\s*/i;
@@ -137,7 +137,7 @@ export interface BatchLine { lemma: string; article?: string; gender?: 'm' | 'f'
 
 /** One line of the batch box: "l'assiette (f.) | plate | 盘子". */
 export function parseBatchLine(line: string, defaultPos: Vocab['pos']): BatchLine {
-  const [frRaw = '', en, zh] = line.split(/\s*[|;；\t]\s*/);
+  const [frRaw = '', en, zh] = splitFields(line, true);
   let fr = frRaw.trim();
   let gender: 'm' | 'f' | undefined;
   const m = fr.match(GENDER_MARK);
@@ -150,4 +150,41 @@ export function parseBatchLine(line: string, defaultPos: Vocab['pos']): BatchLin
   gender = gender ?? articleToGender(article);
   const pos = article || gender ? 'noun' : defaultPos;
   return { lemma, article, gender, pos, defEn: en?.trim() || undefined, defZh: zh?.trim() || undefined };
+}
+
+const HAS_CJK = /[\u3400-\u9fff]/;
+
+/** Fields of one batch line. "|" wins (so 场景；舞台 stays whole); then tabs; vocab also accepts ; as before. */
+export function splitFields(line: string, allowSemicolon = false): string[] {
+  const sep = /[|｜]/.test(line) ? /\s*[|｜]\s*/ : line.includes('\t') ? /\s*\t\s*/ : allowSemicolon ? /\s*[;；]\s*/ : null;
+  return (sep ? line.split(sep) : [line]).map((f) => f.trim());
+}
+
+/** "faire la grasse matinée | to sleep in | 睡懒觉" — the two meanings may come in either order. */
+export function parseExpressionLine(line: string): { text: string; defEn?: string; defZh?: string } {
+  const [text = '', ...defs] = splitFields(line);
+  const zh = defs.find((d) => HAS_CJK.test(d));
+  const en = defs.find((d) => d && d !== zh);
+  return { text, defEn: en || undefined, defZh: zh || undefined };
+}
+
+/** "subjonctif après bien que | bien que + subj. | 让步从句用虚拟式 | Bien qu'il pleuve, on tourne. | B2" — level may sit in any field or as [B2]. */
+export function parseGrammarLine(line: string, defaultCefr: Cefr): {
+  name: string; cefr: Cefr; structure?: string; explanationEn?: string; explanationZh?: string; correctExamples: string[];
+} {
+  let cefr = defaultCefr;
+  const fields = splitFields(line).filter((f) => {
+    const m = f.match(/^\[?\s*([ABC][12])\s*\]?$/i);
+    if (m) cefr = m[1].toUpperCase() as Cefr;
+    return !m;
+  });
+  let [name = '', structure, explanation, example] = fields;
+  const tag = name.match(/^\[\s*([ABC][12])\s*\]\s*/i);
+  if (tag) { cefr = tag[1].toUpperCase() as Cefr; name = name.slice(tag[0].length); }
+  const zh = explanation && HAS_CJK.test(explanation);
+  return {
+    name: name.trim(), cefr, structure: structure || undefined,
+    explanationZh: zh ? explanation : undefined, explanationEn: explanation && !zh ? explanation : undefined,
+    correctExamples: example ? [example] : [],
+  };
 }

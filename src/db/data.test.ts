@@ -232,3 +232,23 @@ describe('parseBatchLine', async () => {
     expect(guessArticle('laver')).toEqual({ lemma: 'laver' });
   });
 });
+
+describe('batch lines for expressions and grammar', async () => {
+  const { parseExpressionLine, parseGrammarLine, parseBatchLine } = await import('./rules');
+  it('expression: meanings in either order, Chinese ；kept whole', () => {
+    expect(parseExpressionLine('avoir le cafard | to feel down | 情绪低落')).toEqual({ text: 'avoir le cafard', defEn: 'to feel down', defZh: '情绪低落' });
+    expect(parseExpressionLine('ça marche | 行；可以 | it works')).toEqual({ text: 'ça marche', defEn: 'it works', defZh: '行；可以' });
+    expect(parseExpressionLine('à la limite')).toEqual({ text: 'à la limite', defEn: undefined, defZh: undefined });
+  });
+  it('grammar: level from a field or [B2], explanation language detected', () => {
+    expect(parseGrammarLine("le subjonctif après bien que | bien que + subj. | 让步从句 | Bien qu'il pleuve. | B2", 'B1')).toEqual({
+      name: 'le subjonctif après bien que', cefr: 'B2', structure: 'bien que + subj.', explanationZh: '让步从句', explanationEn: undefined, correctExamples: ["Bien qu'il pleuve."],
+    });
+    expect(parseGrammarLine('[c1] la mise en relief | | emphasis', 'B1')).toMatchObject({ name: 'la mise en relief', cefr: 'C1', structure: undefined, explanationEn: 'emphasis' });
+    expect(parseGrammarLine('le gérondif', 'A2')).toMatchObject({ name: 'le gérondif', cefr: 'A2', correctExamples: [] });
+  });
+  it('vocab: with "|" a Chinese ； no longer splits the line', () => {
+    expect(parseBatchLine('la scène | scene | 场景；舞台', 'noun')).toMatchObject({ defZh: '场景；舞台' });
+    expect(parseBatchLine('tourner;to shoot;拍摄', 'verb')).toMatchObject({ lemma: 'tourner', defEn: 'to shoot', defZh: '拍摄' });
+  });
+});

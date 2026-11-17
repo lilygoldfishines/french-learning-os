@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, remove, update } from '../db/db';
 import { addExpression, ValidationError } from '../db/items';
-import { findExpressionDuplicate } from '../db/rules';
+import { findExpressionDuplicate, parseExpressionLine } from '../db/rules';
+import BatchAdd from '../features/BatchAdd';
 import { EXPRESSION_CATEGORIES, EXPR_CAT_LABEL, NATURALNESS, NATURALNESS_LABEL, REGISTERS, REGISTER_LABEL, type Expression } from '../db/types';
 import { Badge, Button, Empty, Field, Input, Modal, PageHeader, Select, Textarea, useToast } from '../ui/kit';
 import { ExamplesEditor } from '../features/ListEditors';
@@ -60,6 +61,7 @@ export default function ExpressionsPage() {
   const [cat, setCat] = useState('');
   const [reg, setReg] = useState('');
   const [editing, setEditing] = useState<Draft | null>(null);
+  const [batch, setBatch] = useState(false);
   const rows = useMemo(() => (list ?? [])
     .filter((x) => !q || `${x.text} ${x.defEn} ${x.defZh}`.toLowerCase().includes(q.toLowerCase()))
     .filter((x) => !cat || x.category === cat)
@@ -68,7 +70,7 @@ export default function ExpressionsPage() {
   return (
     <div>
       <KnowledgeTabs />
-      <PageHeader title={tr('表达')} sub={trf('{0} 条地道表达与句型', list?.length ?? 0)} actions={<Button kind="primary" onClick={() => setEditing(empty())}>{tr('＋ 表达')}</Button>} />
+      <PageHeader title={tr('表达')} sub={trf('{0} 条地道表达与句型', list?.length ?? 0)} actions={<><Button onClick={() => setBatch(true)}>{tr('批量录入')}</Button><Button kind="primary" onClick={() => setEditing(empty())}>{tr('＋ 表达')}</Button></>} />
       <div className="mb-4 grid gap-2 md:grid-cols-4">
         <Input className="md:col-span-2" placeholder={tr('搜索')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={tr('搜索表达')} />
         <Select value={cat} onChange={(e) => setCat(e.target.value)} options={[{ value: '', label: tr('全部分类') }, ...EXPRESSION_CATEGORIES.map((c) => ({ value: c, label: EXPR_CAT_LABEL[c] }))]} />
@@ -92,6 +94,11 @@ export default function ExpressionsPage() {
       )}
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑表达') : tr('新表达')} wide>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
+      </Modal>
+      <Modal open={batch} onClose={() => setBatch(false)} title={tr('批量录入')} wide>
+        {batch && <BatchAdd kind="expression" onClose={() => setBatch(false)} parse={parseExpressionLine}
+          help={<>{tr('每行一条：')}<span className="fr">{tr('表达 | 英文 | 中文')}</span>{tr('。释义可以只写一种，中英文顺序不限；语域、例句等导入后再补。')}</>}
+          placeholder={tr('faire la grasse matinée | to sleep in | 睡懒觉\navoir le cafard | to feel down | 情绪低落\nça me dit quelque chose | 好像有点印象')} />}
       </Modal>
     </div>
   );

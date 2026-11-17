@@ -669,5 +669,14 @@ const EN: Record<string, string> = {
   "朗读": "Listen",
   "词条": "Entry",
   "还没有释义。": "No definition yet.",
+  "批量内容": "Batch input",
+  "每行一条：": "One per line: ",
+  "表达 | 英文 | 中文": "expression | English | Chinese",
+  "。释义可以只写一种，中英文顺序不限；语域、例句等导入后再补。": ". One meaning is enough, in either order; add register, examples etc. after importing.",
+  "faire la grasse matinée | to sleep in | 睡懒觉\navoir le cafard | to feel down | 情绪低落\nça me dit quelque chose | 好像有点印象": "faire la grasse matinée | to sleep in | 睡懒觉\navoir le cafard | to feel down | 情绪低落\nça me dit quelque chose | rings a bell",
+  "名称 | 结构 | 说明 | 例句": "name | structure | explanation | example",
+  "。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。": ". Only the name is required; the rest can be blank or left out, and the explanation can be in English or Chinese. Put a level like B2 in any field, or [B2] before the name, to file it under that level.",
+  "le subjonctif après bien que | bien que + subjonctif | 让步从句要用虚拟式 | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | 过去的过去\nla mise en relief | c'est… qui / c'est… que": "le subjonctif après bien que | bien que + subjonctif | concessive clauses take the subjunctive | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | the past before the past\nla mise en relief | c'est… qui / c'est… que",
+  "没写等级的行默认等级": "Default level for lines without one",
 };
 export default EN;

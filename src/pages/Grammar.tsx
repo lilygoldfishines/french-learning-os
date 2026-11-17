@@ -6,6 +6,8 @@ import { ensureCard } from '../srs';
 import { CEFR_LEVELS, type Cefr, type Grammar } from '../db/types';
 import { Badge, Button, Field, Input, Modal, PageHeader, Select, Textarea, cx, useToast } from '../ui/kit';
 import { LinesEditor } from '../features/ListEditors';
+import BatchAdd from '../features/BatchAdd';
+import { parseGrammarLine } from '../db/rules';
 import { KnowledgeTabs } from './More';
 import { tr, trf } from '../i18n';
 import { bilingualName } from '../i18n';
@@ -69,12 +71,24 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
+function GrammarBatch({ defaultCefr, onClose }: { defaultCefr: Cefr; onClose: () => void }) {
+  const [cefr, setCefr] = useState<Cefr>(defaultCefr);
+  return (
+    <BatchAdd kind="grammar" onClose={onClose} parse={(l) => parseGrammarLine(l, cefr)}
+      help={<>{tr('每行一条：')}<span className="fr">{tr('名称 | 结构 | 说明 | 例句')}</span>{tr('。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。')}</>}
+      placeholder={tr("le subjonctif après bien que | bien que + subjonctif | 让步从句要用虚拟式 | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | 过去的过去\nla mise en relief | c'est… qui / c'est… que")}
+      extra={<Field label={tr('没写等级的行默认等级')}><Select value={cefr} onChange={(e) => setCefr(e.target.value as Cefr)} options={CEFR_LEVELS.map((l) => ({ value: l, label: l }))} /></Field>}
+    />
+  );
+}
+
 export default function GrammarPage() {
   const list = useLiveQuery(() => all<Grammar>('grammar'), []);
   const [level, setLevel] = useState<Cefr | ''>('');
   const [q, setQ] = useState('');
   const [hideSkipped, setHideSkipped] = useState(false);
   const [editing, setEditing] = useState<Draft | null>(null);
+  const [batch, setBatch] = useState(false);
   const grouped = useMemo(() => {
     const out: Record<string, Grammar[]> = {};
     for (const g of list ?? []) {
@@ -89,7 +103,7 @@ export default function GrammarPage() {
   return (
     <div>
       <KnowledgeTabs />
-      <PageHeader title={tr('语法')} sub={tr('不必按等级顺序学；已熟练的可以直接跳过')} actions={<Button kind="primary" onClick={() => setEditing(empty(level || 'B1'))}>{tr('＋ 语法点')}</Button>} />
+      <PageHeader title={tr('语法')} sub={tr('不必按等级顺序学；已熟练的可以直接跳过')} actions={<><Button onClick={() => setBatch(true)}>{tr('批量录入')}</Button><Button kind="primary" onClick={() => setEditing(empty(level || 'B1'))}>{tr('＋ 语法点')}</Button></>} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input className="max-w-xs" placeholder={tr('搜索')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={tr('搜索语法')} />
         {(['', ...CEFR_LEVELS] as const).map((l) => (
@@ -119,6 +133,9 @@ export default function GrammarPage() {
       </div>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('语法点') : tr('新语法点')} wide>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
+      </Modal>
+      <Modal open={batch} onClose={() => setBatch(false)} title={tr('批量录入')} wide>
+        {batch && <GrammarBatch defaultCefr={level || 'B1'} onClose={() => setBatch(false)} />}
       </Modal>
     </div>
   );

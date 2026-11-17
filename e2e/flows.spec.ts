@@ -574,3 +574,32 @@ test('19 · word page: read first, edit on request; speaker reads the word and e
   const said = await page.evaluate(() => (window as unknown as { __said: { text: string; lang: string }[] }).__said);
   expect(said).toEqual([{ text: "l'affiche", lang: 'fr-FR' }, { text: "l'affiche", lang: 'fr-FR' }]);
 });
+
+test('20 · batch add for expressions and grammar: preview, levels, duplicates of built-in points', async ({ page }) => {
+  await go(page, '/expressions');
+  await page.getByRole('button', { name: '批量录入' }).click();
+  let dlg = page.getByRole('dialog', { name: '批量录入' });
+  await dlg.getByLabel('批量内容').fill('avoir le cafard | to feel down | 情绪低落\nça marche | 行；可以 | it works\nAvoir le cafard');
+  await dlg.getByRole('button', { name: '预览' }).click();
+  await expect(dlg.getByText('新增 2')).toBeVisible();
+  await expect(dlg.getByText('已存在 1')).toBeVisible(); // repeated within the paste
+  await dlg.getByRole('button', { name: '确认导入' }).click();
+  await expect(page.getByText('导入 2 条，跳过 1 条')).toBeVisible();
+  await expect(page.getByText('情绪低落')).toBeVisible();
+  await expect(page.getByText(/行；可以/)).toBeVisible();
+
+  await go(page, '/grammar');
+  await page.getByRole('button', { name: '批量录入' }).click();
+  dlg = page.getByRole('dialog', { name: '批量录入' });
+  await dlg.getByLabel('批量内容').fill("le subjonctif après bien que | bien que + subjonctif | 让步从句 | Bien qu'il pleuve, on tourne. | B2\n[C1] l'inversion stylistique\nla voix passive");
+  await dlg.getByRole('button', { name: '预览' }).click();
+  await expect(dlg.getByText('新增 2')).toBeVisible();
+  await expect(dlg.getByText('可能重复 1')).toBeVisible();
+  await expect(dlg.getByText('被动语态 Voix passive')).toBeVisible();
+  await dlg.getByRole('button', { name: '确认导入' }).click();
+  await expect(page.getByText('导入 2 条，跳过 1 条')).toBeVisible();
+  await page.getByRole('button', { name: 'C1', exact: true }).click();
+  await expect(page.getByText("l'inversion stylistique")).toBeVisible();
+  await page.getByRole('button', { name: 'B2', exact: true }).click();
+  await expect(page.getByText('le subjonctif après bien que')).toBeVisible();
+});

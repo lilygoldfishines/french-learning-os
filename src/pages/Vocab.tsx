@@ -9,8 +9,7 @@ import {
 import { Button, GramTag, Empty, Field, Input, Modal, PageHeader, Select, TagsInput, Textarea, useToast } from '../ui/kit';
 import { GenderPicker } from '../features/QuickAdd';
 import { ExamplesEditor } from '../features/ListEditors';
-import ImportPreview from '../features/ImportPreview';
-import { buildPreview, type PreviewRow } from '../io/aiImport';
+import BatchAdd from '../features/BatchAdd';
 import { aiFillVocab, AiError, mergeFill, useAiConfig } from '../ai/fill';
 import { KnowledgeTabs } from './More';
 import { tr, trf } from '../i18n';
@@ -179,26 +178,15 @@ export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
   );
 }
 
-function BatchAdd({ onClose }: { onClose: () => void }) {
-  const toast = useToast();
-  const [text, setText] = useState('');
+function VocabBatch({ onClose }: { onClose: () => void }) {
   const [pos, setPos] = useState<Pos>('noun');
-  const [rows, setRows] = useState<PreviewRow[] | null>(null);
-  const parse = async () => {
-    const items = text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-      const p = parseBatchLine(l, pos);
-      return { kind: 'vocab' as const, raw: { lemma: p.lemma, article: p.article, gender: p.gender, pos: p.pos, defEn: p.defEn, defZh: p.defZh } };
-    });
-    setRows(await buildPreview(items));
-  };
-  if (rows) return <ImportPreview rows={rows} onDone={(r) => { toast(trf('导入 {0} 条，跳过 {1} 条', r.added, r.skipped)); onClose(); }} />;
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted">{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文')}</span>{tr('。名词带冠词（la scène）或阴阳性标注（l\'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。')}</p>
-      <Textarea rows={8} lang="fr" className="fr" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('la scène | scene | 场景\nl\'huile (f.) | oil | 油\ntourner | to shoot | 拍摄')} />
-      <Field label={tr('不带冠词的行默认词性')}><Select value={pos} onChange={(e) => setPos(e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>
-      <Button kind="primary" onClick={parse} disabled={!text.trim()}>{tr('预览')}</Button>
-    </div>
+    <BatchAdd kind="vocab" onClose={onClose}
+      parse={(l) => parseBatchLine(l, pos)}
+      help={<>{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文')}</span>{tr('。名词带冠词（la scène）或阴阳性标注（l\'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。')}</>}
+      placeholder={tr('la scène | scene | 场景\nl\'huile (f.) | oil | 油\ntourner | to shoot | 拍摄')}
+      extra={<Field label={tr('不带冠词的行默认词性')}><Select value={pos} onChange={(e) => setPos(e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>}
+    />
   );
 }
 
@@ -309,7 +297,7 @@ export default function VocabPage() {
         {editing && <VocabEditor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>
       <Modal open={batch} onClose={() => setBatch(false)} title={tr('批量录入')} wide>
-        {batch && <BatchAdd onClose={() => setBatch(false)} />}
+        {batch && <VocabBatch onClose={() => setBatch(false)} />}
       </Modal>
     </div>
   );

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { all } from '../db/db';
 import { addExpression, addGrammar, addSentence, addVocab, emptyVocab, logError, recordRecurrence } from '../db/items';
 import {
-  articleToGender, findExpressionDuplicate, findSimilarError, findTextDuplicate, findVocabDuplicate, guessArticle, validateVocab,
+  articleToGender, findExpressionDuplicate, findSimilarError, findTextDuplicate, findVocabDuplicate, guessArticle, normalize, validateVocab,
 } from '../db/rules';
 import { CEFR_LEVELS, ERROR_TYPES, GENDERS, POS, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
 import { tr, trf } from '../i18n';
@@ -153,6 +153,11 @@ export async function buildPreview(items: { kind: Kind; raw: unknown }[]): Promi
         row.action = 'skip';
         row.existingId = dup.existing.id;
         row.existingLabel = getText(dup.existing as Expression | Sentence | Grammar);
+      } else if (kind === 'grammar') {
+        // built-in points are named "被动语态 Voix passive": compare the French part alone
+        const fr = (x: string) => normalize(x.replace(/[\u3000-\u9fff\uff00-\uffef]+/g, ' '));
+        const near = (list as Grammar[]).find((g) => fr(g.name) && fr(g.name) === fr(text));
+        if (near) { row.status = 'possible-dup'; row.action = 'skip'; row.existingId = near.id; row.existingLabel = near.name; }
       }
       (seen[kind] as unknown[]).push({ ...(res.data as object), id: `pending-${key}` });
     } else if (kind === 'error') {
