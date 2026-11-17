@@ -205,3 +205,30 @@ describe('AI import', () => {
     expect(rows[0].issues[0]).toMatch(/pos/);
   });
 });
+
+describe('parseBatchLine', async () => {
+  const { parseBatchLine, guessArticle } = await import('./rules');
+  it.each([
+    ["l' assiette (f.)", 'assiette', "l'", 'f'],
+    ["l’huile (f.)", 'huile', "l'", 'f'],
+    ['la pomme (f.)', 'pomme', 'la', 'f'],
+    ["l'arbre n.m.", 'arbre', "l'", 'm'],
+    ["l'eau [f]", 'eau', "l'", 'f'],
+    ["l'hôtel （阳）", 'hôtel', "l'", 'm'],
+    ["l'image (阴性)", 'image', "l'", 'f'],
+    ["l'ami m", 'ami', "l'", 'm'],
+    ['le cadrage', 'cadrage', 'le', 'm'],
+  ])('%s', (line, lemma, article, gender) => {
+    const p = parseBatchLine(`${line} | x | y`, 'verb');
+    expect(p).toMatchObject({ lemma, article, gender, pos: 'noun', defEn: 'x', defZh: 'y' });
+  });
+  it('leaves non-nouns and words ending in m/f alone', () => {
+    expect(parseBatchLine('tourner | to shoot', 'verb')).toMatchObject({ lemma: 'tourner', pos: 'verb', gender: undefined });
+    expect(parseBatchLine('chef', 'adjective')).toMatchObject({ lemma: 'chef', pos: 'adjective' });
+    expect(parseBatchLine("l'acteur", 'verb')).toMatchObject({ lemma: 'acteur', article: "l'", gender: undefined, pos: 'noun' });
+  });
+  it('does not read "le" off the front of a word', () => {
+    expect(guessArticle('lexique')).toEqual({ lemma: 'lexique' });
+    expect(guessArticle('laver')).toEqual({ lemma: 'laver' });
+  });
+});

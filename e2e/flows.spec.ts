@@ -510,3 +510,21 @@ test('17 · daily new-card limit: waiting cards are explained and "learn more to
   await page.getByRole('button', { name: '今天再学 1 张' }).click();
   await expect(page.getByRole('button', { name: '显示答案' })).toBeVisible();
 });
+
+test("18 · batch add: l' nouns with (f.) marks import; a missing gender can be chosen in the preview", async ({ page }) => {
+  await go(page, '/vocab');
+  await page.getByRole('button', { name: '批量录入' }).click();
+  const dlg = page.getByRole('dialog', { name: '批量录入' });
+  await dlg.locator('textarea').fill("l' assiette (f.) | plate | 盘子\nl’huile (f.)\nla pomme (f.) | apple\nl'acteur | actor");
+  await dlg.getByRole('button', { name: '预览' }).click();
+  await expect(dlg.getByText('新增 3')).toBeVisible();
+  await expect(dlg.getByText("l'assiette", { exact: true })).toBeVisible();
+  await expect(dlg.getByText('la pomme', { exact: true })).toBeVisible();
+  await expect(dlg.getByText('名词必须标注阴阳性')).toHaveCount(1);
+  await dlg.getByRole('group', { name: '选择阴阳性' }).getByRole('button', { name: '阳性 m.' }).click();
+  await expect(dlg.getByText('新增 4')).toBeVisible();
+  await dlg.getByRole('button', { name: '确认导入' }).click();
+  await expect(page.getByText('导入 4 条，跳过 0 条')).toBeVisible();
+  for (const w of ["l'assiette", "l'huile", 'la pomme', "l'acteur"]) await expect(page.getByText(w, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/\(f\.\)/)).toHaveCount(0);
+});

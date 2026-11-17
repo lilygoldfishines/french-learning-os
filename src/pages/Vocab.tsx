@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, remove } from '../db/db';
 import { addVocab, emptyVocab, saveVocab, ValidationError } from '../db/items';
-import { displayLemma, normalize } from '../db/rules';
+import { displayLemma, normalize, parseBatchLine } from '../db/rules';
 import {
   CEFR_LEVELS, LEARN_STATUS, LEARN_STATUS_LABEL, POS, POS_LABEL, TOPIC_LABEL, VOCAB_TOPICS, type Gender, type Pos, type Vocab,
 } from '../db/types';
@@ -113,17 +113,16 @@ function BatchAdd({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<PreviewRow[] | null>(null);
   const parse = async () => {
     const items = text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-      const [fr, en, zh] = l.split(/\s*[|;；\t]\s*/);
-      const hasArticle = /^(le|la|l'|l’|les)\s*/i.test(fr);
-      return { kind: 'vocab' as const, raw: { lemma: fr, pos: hasArticle ? 'noun' : pos, defEn: en, defZh: zh } };
+      const p = parseBatchLine(l, pos);
+      return { kind: 'vocab' as const, raw: { lemma: p.lemma, article: p.article, gender: p.gender, pos: p.pos, defEn: p.defEn, defZh: p.defZh } };
     });
     setRows(await buildPreview(items));
   };
   if (rows) return <ImportPreview rows={rows} onDone={(r) => { toast(trf('导入 {0} 条，跳过 {1} 条', r.added, r.skipped)); onClose(); }} />;
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted">{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文')}</span>{tr('。名词请带冠词（如 la scène），系统会据此判断阴阳性；l\' 开头的名词会被标为格式错误，导入后需手动补阴阳性。')}</p>
-      <Textarea rows={8} lang="fr" className="fr" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('la scène | scene | 场景\nle cadrage | framing | 构图\ntourner | to shoot | 拍摄')} />
+      <p className="text-sm text-muted">{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文')}</span>{tr('。名词带冠词（la scène）或阴阳性标注（l\'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。')}</p>
+      <Textarea rows={8} lang="fr" className="fr" value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('la scène | scene | 场景\nl\'huile (f.) | oil | 油\ntourner | to shoot | 拍摄')} />
       <Field label={tr('不带冠词的行默认词性')}><Select value={pos} onChange={(e) => setPos(e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>
       <Button kind="primary" onClick={parse} disabled={!text.trim()}>{tr('预览')}</Button>
     </div>

@@ -15,9 +15,10 @@ export function normalize(s: string): string {
 }
 
 export function guessArticle(lemma: string): { article?: string; lemma: string } {
-  const m = lemma.trim().match(/^(le|la|les|l'|l’)\s*(.+)$/i);
-  if (!m) return { lemma: lemma.trim() };
-  return { article: m[1].toLowerCase().replace('’', "'"), lemma: m[2].trim() };
+  const t = lemma.trim().replace(/[’‘ʼ`´]/g, "'");
+  const m = t.match(/^(l')\s*(.+)$/i) ?? t.match(/^(le|la|les)\s+(.+)$/i);
+  if (!m) return { lemma: t };
+  return { article: m[1].toLowerCase(), lemma: m[2].trim() };
 }
 
 export function articleToGender(article?: string): 'm' | 'f' | undefined {
@@ -127,4 +128,26 @@ export function localDate(d: Date): string {
 export function addDays(ymd: string, n: number): string {
   const [y, m, d] = ymd.split('-').map(Number);
   return localDate(new Date(y, m - 1, d + n));
+}
+
+/** Gender markers people commonly write after a noun: (f.) (m) [f] n.f. nm (阴) (阳性) — and m/f alone. */
+const GENDER_MARK = /\s*(?:\(\s*(?:n\.?\s*)?([mf])\.?\s*\)|\[\s*(?:n\.?\s*)?([mf])\.?\s*\]|\(\s*(阴|阳)性?\s*\)|（\s*(?:n\.?\s*)?([mf阴阳])\.?性?\s*）|\bn\.?\s*([mf])\.?(?=\s|$)|\s([mf])\.?(?=\s*$))\s*$/i;
+
+export interface BatchLine { lemma: string; article?: string; gender?: 'm' | 'f'; pos: Vocab['pos']; defEn?: string; defZh?: string }
+
+/** One line of the batch box: "l'assiette (f.) | plate | 盘子". */
+export function parseBatchLine(line: string, defaultPos: Vocab['pos']): BatchLine {
+  const [frRaw = '', en, zh] = line.split(/\s*[|;；\t]\s*/);
+  let fr = frRaw.trim();
+  let gender: 'm' | 'f' | undefined;
+  const m = fr.match(GENDER_MARK);
+  if (m) {
+    const g = (m.slice(1).find(Boolean) ?? '').toLowerCase();
+    gender = g === 'f' || g === '阴' ? 'f' : 'm';
+    fr = fr.slice(0, m.index).trim();
+  }
+  const { article, lemma } = guessArticle(fr);
+  gender = gender ?? articleToGender(article);
+  const pos = article || gender ? 'noun' : defaultPos;
+  return { lemma, article, gender, pos, defEn: en?.trim() || undefined, defZh: zh?.trim() || undefined };
 }
