@@ -50,19 +50,25 @@ test('2 · vocab: quick add with gender, gender required, duplicate, edit, searc
   await page.getByRole('button', { name: '关闭' }).click();
 
   await go(page, '/vocab');
-  const row = page.getByRole('button', { name: /la scène/ });
+  const row = page.getByRole('button', { name: /^la scène/ });
   await expect(row).toBeVisible();
   await expect(row.getByText('n. f.')).toBeVisible();
   await row.click();
+  const view = page.getByRole('dialog', { name: '词条', exact: true });
+  await expect(view.getByRole('heading', { name: 'la scène' })).toBeVisible();
+  await view.getByRole('button', { name: '编辑' }).click();
   const ed = page.getByRole('dialog', { name: '编辑词条' });
   await ed.getByLabel('中文解释').fill('场景');
   await ed.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(view.getByText('场景', { exact: true })).toBeVisible(); // back on the reading page, updated
+  await view.getByRole('button', { name: '关闭' }).click();
   await page.getByLabel('搜索词汇').fill('场景');
-  await expect(page.getByRole('button', { name: /la scène/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^la scène/ })).toBeVisible();
   await page.getByLabel('搜索词汇').fill('zzz');
   await expect(page.getByText('没有符合条件的词条')).toBeVisible();
   await page.getByLabel('搜索词汇').fill('');
-  await page.getByRole('button', { name: /la scène/ }).click();
+  await page.getByRole('button', { name: /^la scène/ }).click();
+  await page.getByRole('dialog', { name: '词条', exact: true }).getByRole('button', { name: '编辑' }).click();
   await page.getByRole('dialog', { name: '编辑词条' }).getByRole('button', { name: '删除' }).click();
   await expect(page.getByText('还没有词汇')).toBeVisible();
 });
@@ -154,7 +160,7 @@ test('6 · AI JSON import: preview, duplicate detection, confirm', async ({ page
   await page.getByRole('button', { name: '确认导入' }).click();
   await expect(page.getByRole('status').filter({ hasText: '导入 2 条' })).toBeVisible();
   await go(page, '/vocab');
-  await expect(page.getByRole('button', { name: /le cadrage/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^le cadrage/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^repérage/ })).toHaveCount(0);
 });
 
@@ -188,7 +194,7 @@ test('7 · backup: export, restore on a fresh device, no duplicates, tamper chec
   await p2.getByRole('button', { name: '合并（推荐）' }).click();
   await expect(p2.getByRole('status').filter({ hasText: '合并完成' })).toBeVisible();
   await p2.goto('./#/vocab');
-  await expect(p2.getByRole('button', { name: /le plan-séquence/ })).toBeVisible();
+  await expect(p2.getByRole('button', { name: /^le plan-séquence/ })).toBeVisible();
   // merging the same backup again adds nothing (no duplicates)
   await p2.goto('./#/settings');
   await p2.locator('input[type=file]').setInputFiles(path);
@@ -274,10 +280,12 @@ test('11 · AI fill: key in settings, quick add fills gender + definitions, edit
   await dlg.getByRole('button', { name: '保存' }).click();
   await page.getByRole('button', { name: '关闭' }).click();
   await go(page, '/vocab');
-  await page.getByRole('button', { name: /la scène/ }).click();
+  await page.getByRole('button', { name: /^la scène/ }).click();
+  await page.getByRole('dialog', { name: '词条', exact: true }).getByRole('button', { name: '编辑' }).click();
   const ed = page.getByRole('dialog', { name: '编辑词条' });
   await expect(ed.getByLabel('中文解释')).toHaveValue('场景；舞台');
   await expect(ed.getByLabel('IPA 音标')).toHaveValue('sɛn');
+  await page.getByRole('button', { name: '关闭' }).click(); // editor → back to the reading page
   await page.getByRole('button', { name: '关闭' }).click();
 
   // a word added without AI, then filled from the editor: learner's own definition survives
@@ -435,14 +443,15 @@ test('15 · cloud sync between two devices (stand-in server, real client library
   await wire(b);
   await signIn(b);
   await b.goto('./#/vocab');
-  await expect(b.getByRole('button', { name: /la scène/ })).toBeVisible();
+  await expect(b.getByRole('button', { name: /^la scène/ })).toBeVisible();
   await b.goto('./#/grammar');
   await expect(b.getByRole('heading', { name: /^A1 · 0\/10/ })).toBeVisible(); // 10 A1 seeds, not 20
 
   // edit the same word on both devices → conflict shown on the second device to sync
   for (const [p, txt] of [[page, 'scene (A)'], [b, 'scene (B)']] as const) {
     await p.goto('./#/vocab');
-    await p.getByRole('button', { name: /la scène/ }).click();
+    await p.getByRole('button', { name: /^la scène/ }).click();
+    await p.getByRole('dialog', { name: '词条', exact: true }).getByRole('button', { name: '编辑' }).click();
     await p.getByRole('dialog', { name: '编辑词条' }).getByLabel('英文释义').fill(txt);
     await p.getByRole('dialog', { name: '编辑词条' }).getByRole('button', { name: '保存', exact: true }).click();
   }
@@ -527,4 +536,41 @@ test("18 · batch add: l' nouns with (f.) marks import; a missing gender can be 
   await expect(page.getByText('导入 4 条，跳过 0 条')).toBeVisible();
   for (const w of ["l'assiette", "l'huile", 'la pomme', "l'acteur"]) await expect(page.getByText(w, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\(f\.\)/)).toHaveCount(0);
+});
+
+test('19 · word page: read first, edit on request; speaker reads the word and examples in French', async ({ page }) => {
+  await page.addInitScript(() => {
+    const said: { text: string; lang: string }[] = [];
+    (window as unknown as { __said: typeof said }).__said = said;
+    class U { text: string; lang = ''; voice = null; rate = 1; onend: (() => void) | null = null; onerror = null; constructor(t: string) { this.text = t; } }
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: U, configurable: true });
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{ lang: 'en-US', localService: true, name: 'Sam' }, { lang: 'fr-FR', localService: true, name: 'Thomas' }],
+      addEventListener() {}, cancel() {},
+      speak(u: U) { said.push({ text: u.text, lang: u.lang }); setTimeout(() => u.onend?.(), 10); },
+    } });
+  });
+  await page.reload(); // the init script applies to new documents only
+  await go(page, '/');
+  await openQuick(page);
+  const dlg = page.getByRole('dialog', { name: '快速记录' });
+  await dlg.getByLabel('法语（可以带冠词').fill("l'affiche");
+  await dlg.getByRole('button', { name: 'la · 阴性' }).click();
+  await dlg.getByRole('button', { name: '保存' }).click();
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  await go(page, '/vocab');
+  await page.getByRole('button', { name: "朗读 l'affiche" }).click(); // straight from the list
+  await page.getByRole('button', { name: /^l'affiche/ }).click();
+  const view = page.getByRole('dialog', { name: '词条', exact: true });
+  await expect(view.getByRole('heading', { name: "l'affiche" })).toBeVisible();
+  await expect(view.getByRole('textbox')).toHaveCount(0); // a reading page, not a form
+  await view.getByRole('button', { name: "朗读 l'affiche" }).click();
+  await view.getByRole('button', { name: '编辑' }).click();
+  const ed = page.getByRole('dialog', { name: '编辑词条' });
+  await ed.getByLabel('英文释义').fill('poster');
+  await ed.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(view.getByText('poster')).toBeVisible();
+  const said = await page.evaluate(() => (window as unknown as { __said: { text: string; lang: string }[] }).__said);
+  expect(said).toEqual([{ text: "l'affiche", lang: 'fr-FR' }, { text: "l'affiche", lang: 'fr-FR' }]);
 });

@@ -8,6 +8,7 @@ import { displayLemma } from '../db/rules';
 import { ERROR_TYPE_LABEL, type CardRecord, type ErrorEntry, type Expression, type Grammar, type Sentence, type Vocab } from '../db/types';
 import { Button, Empty, GramTag, PageHeader } from '../ui/kit';
 import { tr, trf } from '../i18n';
+import { SpeakButton } from '../features/Speak';
 import { bilingualName } from '../i18n';
 
 type Item = Vocab | Expression | Sentence | Grammar | ErrorEntry;
@@ -37,6 +38,7 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
           <div className="flex flex-wrap items-baseline justify-center gap-2">
             <GramTag pos={v.pos} gender={v.gender} />
             {v.ipa && <span className="fr-meta text-[15px] text-muted">/{v.ipa.replace(/^\/|\/$/g, '')}/</span>}
+            <SpeakButton size="sm" text={displayLemma(v)} audioUrl={v.audioUrl} className="self-center" />
             {v.plural && <span className="fr-meta text-[15px] text-muted">pl. {v.plural}</span>}
           </div>
           <div className="mx-auto my-2 h-px w-10 bg-ink" />

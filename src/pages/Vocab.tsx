@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, remove } from '../db/db';
 import { addVocab, emptyVocab, saveVocab, ValidationError } from '../db/items';
@@ -14,6 +14,7 @@ import { buildPreview, type PreviewRow } from '../io/aiImport';
 import { aiFillVocab, AiError, mergeFill, useAiConfig } from '../ai/fill';
 import { KnowledgeTabs } from './More';
 import { tr, trf } from '../i18n';
+import { isAudioFile, SpeakButton } from '../features/Speak';
 
 type Draft = Omit<Vocab, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev'> & { id?: string };
 
@@ -106,6 +107,78 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
   );
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-1 text-xs uppercase tracking-wider text-faint">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Read-only page for one word; editing is one tap away. */
+export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
+  const word = displayLemma(v);
+  const lists: [string, string[]][] = [
+    [tr('同义词'), v.synonyms], [tr('反义词'), v.antonyms], [tr('相关词汇'), v.related],
+    [tr('常见搭配'), v.collocations], [tr('常见介词'), v.prepositions],
+  ];
+  return (
+    <article className="space-y-5">
+      <header>
+        <div className="flex items-center gap-3">
+          <h3 className="fr text-[32px] leading-tight" lang="fr">{word}</h3>
+          <SpeakButton text={word} audioUrl={v.audioUrl} />
+        </div>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <GramTag pos={v.pos} gender={v.gender} />
+          {v.ipa && <span className="fr-meta text-muted">/{v.ipa.replace(/^\/|\/$/g, '')}/</span>}
+          {v.plural && <span className="fr-meta text-muted">pl. {v.plural}</span>}
+          {v.cefr && <span className="text-xs text-muted">{v.cefr}</span>}
+          <span className="text-xs text-faint">{LEARN_STATUS_LABEL[v.status]}</span>
+          {v.audioUrl && !isAudioFile(v.audioUrl) && <a className="text-xs text-accent underline" href={v.audioUrl} target="_blank" rel="noreferrer">{tr('发音链接')} ↗</a>}
+        </div>
+      </header>
+      {(v.defEn || v.defZh) ? (
+        <div className="space-y-1">
+          {v.defEn && <p className="text-[17px]">{v.defEn}</p>}
+          {v.defZh && <p className="text-muted">{v.defZh}</p>}
+        </div>
+      ) : <p className="text-sm text-faint">{tr('还没有释义。')}</p>}
+      {v.examples.length > 0 && (
+        <Section title={tr('例句')}>
+          <ul className="space-y-3">
+            {v.examples.map((e, i) => (
+              <li key={i} className="flex gap-2">
+                <SpeakButton size="sm" text={e.fr} className="mt-0.5" />
+                <div>
+                  <p className="fr italic" lang="fr">{e.fr}</p>
+                  {e.en && <p className="text-sm text-muted">{e.en}</p>}
+                  {e.zh && <p className="text-sm text-muted">{e.zh}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {lists.filter(([, xs]) => xs.length).map(([t, xs]) => (
+        <Section key={t} title={t}><p className="fr" lang="fr">{xs.join(' · ')}</p></Section>
+      ))}
+      {v.pos === 'verb' && (
+        <Section title={tr('动词变位')}>
+          {v.conjugation && <p className="text-sm">{v.conjugation}</p>}
+          <a className="text-sm text-accent underline" href={`#/conjugation?v=${encodeURIComponent(v.lemma.trim())}`}>{tr('查看完整变位表 →')}</a>
+        </Section>
+      )}
+      {v.topics.length > 0 && <Section title={tr('主题')}><p className="text-sm">{v.topics.map((t) => TOPIC_LABEL[t as keyof typeof TOPIC_LABEL] ?? t).join(' · ')}</p></Section>}
+      {v.notes && <Section title={tr('个人笔记')}><p className="whitespace-pre-wrap text-sm">{v.notes}</p></Section>}
+      <div className="flex justify-end border-t border-line pt-4">
+        <Button kind="primary" onClick={onEdit}>{tr('编辑')}</Button>
+      </div>
+    </article>
+  );
+}
+
 function BatchAdd({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const [text, setText] = useState('');
@@ -138,6 +211,8 @@ export default function VocabPage() {
   const [pos, setPos] = useState('');
   const [sort, setSort] = useState<'recent' | 'alpha' | 'cefr'>('recent');
   const [editing, setEditing] = useState<Draft | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const viewing = viewingId ? list?.find((x) => x.id === viewingId) : undefined;
   const [batch, setBatch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const ai = useAiConfig();
@@ -207,8 +282,9 @@ export default function VocabPage() {
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
           {rows.map((v) => (
-            <li key={v.id}>
-              <button className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-paper" onClick={() => setEditing(v)}>
+            <li key={v.id} className="flex items-center hover:bg-paper">
+              <SpeakButton size="sm" text={displayLemma(v)} audioUrl={v.audioUrl} className="ml-3" />
+              <button className="flex min-w-0 flex-1 items-start justify-between gap-3 px-3 py-3 text-left" onClick={() => setViewingId(v.id)}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="fr text-[21px]">{displayLemma(v)}</span>
@@ -226,6 +302,9 @@ export default function VocabPage() {
           {rows.length === 0 && <li className="p-6 text-center text-sm text-muted">{tr('没有符合条件的词条')}</li>}
         </ul>
       )}
+      <Modal open={!!viewing && !editing} onClose={() => setViewingId(null)} title={tr('词条')} wide>
+        {viewing && <VocabView v={viewing} onEdit={() => setEditing(viewing)} />}
+      </Modal>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑词条') : tr('新词')} wide>
         {editing && <VocabEditor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>

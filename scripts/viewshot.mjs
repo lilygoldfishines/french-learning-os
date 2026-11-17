@@ -1,0 +1,15 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+await p.goto('http://localhost:4173/#/data');
+await p.getByLabel('粘贴 JSON').fill(JSON.stringify({ vocab: [{ lemma: 'affiche', article: "l'", gender: 'f', pos: 'noun', plural: 'affiches', ipa: 'a.fiʃ', defEn: 'poster; bill', defZh: '海报；招贴', cefr: 'B1', topics: ['cinema'], collocations: ["l'affiche du film", 'à l’affiche'], synonyms: ['poster'], examples: [{ fr: "Le film est encore à l'affiche ce mois-ci.", en: 'The film is still showing this month.', zh: '这部电影这个月还在上映。' }, { fr: "Ils ont collé des affiches partout.", en: 'They put up posters everywhere.' }] }] }));
+await p.getByRole('button', { name: '校验并预览' }).click();
+await p.getByRole('button', { name: '确认导入' }).click();
+await p.waitForTimeout(500);
+await p.goto('http://localhost:4173/#/vocab');
+await p.waitForTimeout(500);
+await p.screenshot({ path: '/tmp/vlist.png' });
+await p.getByRole('button', { name: /^l'affiche/ }).click();
+await p.waitForTimeout(400);
+await p.screenshot({ path: '/tmp/vview.png' });
+await b.close();

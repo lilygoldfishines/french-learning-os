@@ -666,5 +666,8 @@ const EN: Record<string, string> = {
   /* daily new-card limit */
   "今天的新卡上限（{0} 张）已经学完，还有 {1} 张新卡在排队。": "You've used today's new-card limit ({0}); {1} new cards are waiting.",
   "今天再学 {0} 张": "Learn {0} more today", "调整每日上限": "Change daily limit", "另有 {0} 张超出今天上限": "{0} more beyond today's limit",
+  "朗读": "Listen",
+  "词条": "Entry",
+  "还没有释义。": "No definition yet.",
 };
 export default EN;
