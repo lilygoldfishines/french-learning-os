@@ -92,20 +92,32 @@ function ConflictBanner() {
 }
 
 function BottomNav({ onQuick }: { onQuick: () => void }) {
+  const loc = useLocation();
+  const LIBRARY = ['/vocab', '/grammar', '/expressions', '/sentences', '/errors'];
   const tab = (to: string, label: string, end = false) => (
-    <NavLink to={to} end={end} className={({ isActive }) => cx('flex flex-1 flex-col items-center py-2 text-xs', isActive ? 'font-semibold text-ink' : 'text-muted')}>
+    <NavLink to={to} end={end} className={({ isActive }) => cx('flex flex-1 flex-col items-center py-3 text-xs', isActive || (to === '/vocab' && LIBRARY.includes(loc.pathname)) ? 'font-semibold text-ink' : 'text-muted')}>
       {label}
     </NavLink>
   );
+  // the add button floats above the bar; on study pages it would cover the answer buttons, so it steps aside there
+  const hideFab = ['/learn', '/review', '/conjugation'].includes(loc.pathname);
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-line bg-paper/95 backdrop-blur md:hidden" aria-label={tr('主导航')}>
-      {tab('/', tr('今天'), true)}
-      {tab('/learn', tr('学习'))}
-      {tab('/review', tr('复习'))}
-      <button onClick={onQuick} aria-label={tr('快速记录')} className="mx-2 -mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-2xl text-paper shadow">{tr('＋')}</button>
-      {tab('/vocab', tr('知识库'))}
-      {tab('/more', tr('更多'))}
-    </nav>
+    <>
+      {!hideFab && (
+        <button onClick={onQuick} aria-label={tr('快速记录')}
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 4.25rem)' }}
+          className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-3xl leading-none text-paper shadow-lg md:hidden">
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      )}
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-line bg-paper/95 backdrop-blur md:hidden" aria-label={tr('主导航')}>
+        {tab('/', tr('今天'), true)}
+        {tab('/learn', tr('学习'))}
+        {tab('/review', tr('复习'))}
+        {tab('/vocab', tr('知识库'))}
+        {tab('/more', tr('更多'))}
+      </nav>
+    </>
   );
 }
 
