@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { all, db, remove, update } from './db';
 import { addExpression, addVocab, emptyVocab, logError, recordCorrectUse, recordRecurrence, saveVocab, ValidationError } from './items';
-import { deriveErrorStatus, normalize } from './rules';
+import { deriveErrorStatus, displayLemma, normalize } from './rules';
 import { bootstrap } from './bootstrap';
 import { buildQueue, grade, Rating } from '../srs';
 import { DEFAULT_SETTINGS, type ErrorEntry, type Vocab } from './types';
@@ -51,6 +51,10 @@ describe('duplicates', () => {
     await addVocab(noun('livre', 'f'), { allowPossibleDup: true });
     expect(await all('vocab')).toHaveLength(2);
     expect(normalize("L’école")).toBe('école');
+    expect(displayLemma({ lemma: 'apprenant', article: 'l’' })).toBe("l'apprenant");
+    expect(displayLemma({ lemma: 'scène', article: 'la' })).toBe('la scène');
+    const saved = await addVocab({ ...emptyVocab(), lemma: 'école', article: 'l’', gender: 'f', pos: 'noun' });
+    expect(saved.article).toBe("l'");
   });
   it('blocks duplicate expressions', async () => {
     await addExpression({ text: 'avoir le cafard', examples: [] });

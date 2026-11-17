@@ -67,10 +67,11 @@ function Back({ card, item }: { card: CardRecord; item: Item }) {
 }
 
 const BUTTONS: { r: Grade; label: string; cls: string }[] = [
-  { r: Rating.Again, label: tr('忘了'), cls: 'border-bad/40 text-bad' },
-  { r: Rating.Hard, label: tr('困难'), cls: 'border-warn/40 text-warn' },
-  { r: Rating.Good, label: tr('记得'), cls: 'border-ink bg-ink text-paper [&_div]:text-paper/70' },
-  { r: Rating.Easy, label: tr('简单'), cls: 'border-accent/40 text-accent' },
+  // each button carries its full colour set: mixing a default background with an override is order-dependent in CSS
+  { r: Rating.Again, label: tr('忘了'), cls: 'border-line bg-panel text-bad' },
+  { r: Rating.Hard, label: tr('困难'), cls: 'border-line bg-panel text-warn' },
+  { r: Rating.Good, label: tr('记得'), cls: 'border-ink bg-ink text-paper' },
+  { r: Rating.Easy, label: tr('简单'), cls: 'border-line bg-panel text-accent' },
 ];
 
 export default function Review() {
@@ -136,10 +137,10 @@ export default function Review() {
             {flipped ? (
               <div className="grid grid-cols-4 gap-2">
                 {BUTTONS.map((b, i) => (
-                  <button key={b.r} onClick={() => rate(b.r)} className={`rounded-md border border-line bg-panel py-3 text-sm ${b.cls}`}>
+                  <button key={b.r} onClick={() => rate(b.r)} className={`rounded-md border py-3 text-sm ${b.cls}`}>
                     <div className="font-medium">{b.label}</div>
-                    <div className="text-[11px] text-muted">{iv?.[b.r]}</div>
-                    <div className="hidden text-[10px] text-faint md:block">{i + 1}</div>
+                    <div className={`text-[11px] ${b.r === Rating.Good ? 'text-paper/75' : 'text-muted'}`}>{iv?.[b.r]}</div>
+                    <div className={`hidden text-[10px] md:block ${b.r === Rating.Good ? 'text-paper/60' : 'text-faint'}`}>{i + 1}</div>
                   </button>
                 ))}
               </div>

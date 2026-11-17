@@ -1,7 +1,7 @@
 import { all, db, insert, update, nowIso } from './db';
 import { ensureCard } from '../srs';
 import {
-  deriveErrorStatus, findExpressionDuplicate, findSimilarError, findTextDuplicate, findVocabDuplicate, validateVocab,
+  normArticle, deriveErrorStatus, findExpressionDuplicate, findSimilarError, findTextDuplicate, findVocabDuplicate, validateVocab,
 } from './rules';
 import type { ErrorEntry, Expression, Grammar, Sentence, Vocab, SystemFields } from './types';
 import { tr, trf } from '../i18n';
@@ -25,6 +25,7 @@ export class ValidationError extends Error {
 }
 
 export async function addVocab(v: New<Vocab>, opts: { allowPossibleDup?: boolean } = {}) {
+  v = { ...v, article: v.article ? normArticle(v.article) : v.article };
   const problems = validateVocab(v);
   if (problems.length) throw new ValidationError(problems);
   const dup = findVocabDuplicate(v, await all<Vocab>('vocab'));
@@ -36,6 +37,7 @@ export async function addVocab(v: New<Vocab>, opts: { allowPossibleDup?: boolean
 }
 
 export async function saveVocab(id: string, v: Partial<Vocab>) {
+  if (v.article) v = { ...v, article: normArticle(v.article) };
   const cur = await db.vocab.get(id);
   const merged = { ...cur, ...v };
   const problems = validateVocab(merged);

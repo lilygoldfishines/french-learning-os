@@ -37,9 +37,13 @@ export function validateVocab(v: Partial<Vocab>): string[] {
   return errs;
 }
 
+/** Typographic apostrophes (’ ‘ ʼ) from AI output or iOS keyboards → plain ' so elision is recognised. */
+export const normArticle = (a: string) => a.trim().replace(/[’‘ʼ`´]/g, "'");
+
 export function displayLemma(v: Pick<Vocab, 'lemma' | 'article'>): string {
   if (!v.article) return v.lemma;
-  return v.article.endsWith("'") ? `${v.article}${v.lemma}` : `${v.article} ${v.lemma}`;
+  const a = normArticle(v.article);
+  return a.endsWith("'") ? `${a}${v.lemma}` : `${a} ${v.lemma}`;
 }
 
 export type DupKind = 'exact' | 'possible';

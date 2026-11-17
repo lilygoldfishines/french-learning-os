@@ -79,6 +79,14 @@ test('3 · review: new card can be flipped and graded', async ({ page }) => {
   await page.waitForTimeout(500); // the card must stay unflipped until asked (regression: queue reload loop)
   await page.getByRole('button', { name: '显示答案' }).click();
   await expect(page.getByRole('button', { name: '卡片背面' })).toContainText('editing');
+  // regression: every grade button must be readable (the "Good" button once rendered white-on-white)
+  for (const name of ['忘了', '困难', '记得', '简单']) {
+    const btn = page.getByRole('button', { name: new RegExp(`^${name}`) });
+    const [bg, fg] = await btn.evaluate((el) => { const s = getComputedStyle(el); return [s.backgroundColor, s.color]; });
+    expect(bg, `${name} background vs text`).not.toBe(fg);
+    const lum = (c: string) => { const [r, g, b] = c.match(/\d+/g)!.map(Number); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    expect(Math.abs(lum(bg) - lum(fg)), `${name} contrast`).toBeGreaterThan(90);
+  }
   await page.getByRole('button', { name: /^简单/ }).click();
   await expect(page.getByText('今天的复习完成了')).toBeVisible();
   await expect(page.getByText(/本次已复习 1/)).toBeVisible();
