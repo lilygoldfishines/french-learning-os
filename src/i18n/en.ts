@@ -678,5 +678,11 @@ const EN: Record<string, string> = {
   "。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。": ". Only the name is required; the rest can be blank or left out, and the explanation can be in English or Chinese. Put a level like B2 in any field, or [B2] before the name, to file it under that level.",
   "le subjonctif après bien que | bien que + subjonctif | 让步从句要用虚拟式 | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | 过去的过去\nla mise en relief | c'est… qui / c'est… que": "le subjonctif après bien que | bien que + subjonctif | concessive clauses take the subjunctive | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | the past before the past\nla mise en relief | c'est… qui / c'est… que",
   "没写等级的行默认等级": "Default level for lines without one",
+  "编辑语法点": "Edit grammar point",
+  "正确例句": "Correct examples",
+  "错误例句": "Incorrect examples",
+  "掌握程度": "Mastery",
+  "这个语法点还没有内容，点「编辑」补充结构、解释和例句。": "Nothing written for this point yet — tap Edit to add the structure, an explanation and examples.",
+  "✓ 已在复习中": "✓ In review",
 };
 export default EN;

@@ -7,6 +7,8 @@ import { CEFR_LEVELS, type Cefr, type Grammar } from '../db/types';
 import { Badge, Button, Field, Input, Modal, PageHeader, Select, Textarea, cx, useToast } from '../ui/kit';
 import { LinesEditor } from '../features/ListEditors';
 import BatchAdd from '../features/BatchAdd';
+import { Para, ReadFooter, ReadSection } from '../features/ReadView';
+import { SpeakButton } from '../features/Speak';
 import { parseGrammarLine } from '../db/rules';
 import { KnowledgeTabs } from './More';
 import { tr, trf } from '../i18n';
@@ -71,6 +73,60 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
+function GrammarView({ g, onEdit }: { g: Grammar; onEdit: () => void }) {
+  const toast = useToast();
+  const inReview = useLiveQuery(async () => !!(await db.card.where('[itemType+itemId]').equals(['grammar', g.id]).filter((c) => !c.deletedAt).first()), [g.id]);
+  const empty = !g.structure && !g.explanationEn && !g.explanationZh && !g.conditions && !g.correctExamples.length && !g.incorrectExamples.length && !g.commonErrors && !g.exceptions && !g.notes;
+  return (
+    <article className="space-y-5">
+      <header>
+        <h3 className="font-serif text-[26px] leading-tight">{bilingualName(g.name)}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+          <span>{g.cefr}</span>
+          {g.category && <span>· {tr(g.category)}</span>}
+          {g.skipped && <Badge>{tr('跳过')}</Badge>}
+        </div>
+      </header>
+      <ReadSection title={tr('结构')} show={!!g.structure}><Para fr className="text-[18px]">{g.structure}</Para></ReadSection>
+      {(g.explanationEn || g.explanationZh) && (
+        <div className="space-y-2">
+          {g.explanationEn && <Para className="!text-base">{g.explanationEn}</Para>}
+          {g.explanationZh && <Para className="text-muted">{g.explanationZh}</Para>}
+        </div>
+      )}
+      <ReadSection title={tr('使用条件与场景')} show={!!g.conditions}><Para>{g.conditions}</Para></ReadSection>
+      <ReadSection title={tr('正确例句')} show={g.correctExamples.length > 0}>
+        <ul className="space-y-2">
+          {g.correctExamples.map((e, i) => (
+            <li key={i} className="flex gap-2"><SpeakButton size="sm" text={e} className="mt-0.5" /><p className="fr italic" lang="fr">{e}</p></li>
+          ))}
+        </ul>
+      </ReadSection>
+      <ReadSection title={tr('错误例句')} show={g.incorrectExamples.length > 0}>
+        <ul className="space-y-1">
+          {g.incorrectExamples.map((e, i) => <li key={i} className="fr text-bad" lang="fr"><span aria-hidden>✗ </span><span className="line-through decoration-1">{e}</span></li>)}
+        </ul>
+      </ReadSection>
+      <ReadSection title={tr('常见错误')} show={!!g.commonErrors}><Para>{g.commonErrors}</Para></ReadSection>
+      <ReadSection title={tr('特殊情况')} show={!!g.exceptions}><Para>{g.exceptions}</Para></ReadSection>
+      <ReadSection title={tr('笔记')} show={!!g.notes}><Para>{g.notes}</Para></ReadSection>
+      {empty && <p className="text-sm text-faint">{tr('这个语法点还没有内容，点「编辑」补充结构、解释和例句。')}</p>}
+      <ReadSection title={tr('掌握程度')}>
+        <div className="flex flex-wrap gap-1" role="group" aria-label={tr('掌握程度')}>
+          {MASTERY.map((m, i) => (
+            <button key={i} aria-pressed={g.mastery === i} onClick={() => update<Grammar>('grammar', g.id, { mastery: i })}
+              className={cx('rounded border px-2 py-1 text-xs', g.mastery === i ? 'border-ink bg-ink text-paper' : 'border-line')}>{m}</button>
+          ))}
+        </div>
+      </ReadSection>
+      <ReadFooter onEdit={onEdit}>
+        {inReview === false && <Button onClick={async () => { await ensureCard('grammar', g.id); toast(tr('已加入复习')); }}>{tr('加入复习')}</Button>}
+        {inReview && <span className="self-center text-sm text-muted">{tr('✓ 已在复习中')}</span>}
+      </ReadFooter>
+    </article>
+  );
+}
+
 function GrammarBatch({ defaultCefr, onClose }: { defaultCefr: Cefr; onClose: () => void }) {
   const [cefr, setCefr] = useState<Cefr>(defaultCefr);
   return (
@@ -89,6 +145,8 @@ export default function GrammarPage() {
   const [hideSkipped, setHideSkipped] = useState(false);
   const [editing, setEditing] = useState<Draft | null>(null);
   const [batch, setBatch] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const viewing = viewingId ? list?.find((x) => x.id === viewingId) : undefined;
   const grouped = useMemo(() => {
     const out: Record<string, Grammar[]> = {};
     for (const g of list ?? []) {
@@ -118,7 +176,7 @@ export default function GrammarPage() {
             <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
               {grouped[l].map((g) => (
                 <li key={g.id}>
-                  <button className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-paper" onClick={() => setEditing(g)}>
+                  <button className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-paper" onClick={() => setViewingId(g.id)}>
                     <span className={cx(g.skipped && 'text-faint')}>{bilingualName(g.name)}</span>
                     <span className="flex shrink-0 items-center gap-2">
                       {g.category && <span className="hidden text-xs text-muted md:inline">{tr(g.category)}</span>}
@@ -131,7 +189,10 @@ export default function GrammarPage() {
           </section>
         ))}
       </div>
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('语法点') : tr('新语法点')} wide>
+      <Modal open={!!viewing && !editing} onClose={() => setViewingId(null)} title={tr('语法点')} wide>
+        {viewing && <GrammarView g={viewing} onEdit={() => setEditing(viewing)} />}
+      </Modal>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑语法点') : tr('新语法点')} wide>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>
       <Modal open={batch} onClose={() => setBatch(false)} title={tr('批量录入')} wide>

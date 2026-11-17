@@ -4,6 +4,8 @@ import { all, remove, update } from '../db/db';
 import { addExpression, ValidationError } from '../db/items';
 import { findExpressionDuplicate, parseExpressionLine } from '../db/rules';
 import BatchAdd from '../features/BatchAdd';
+import { Para, ReadFooter, ReadSection } from '../features/ReadView';
+import { SpeakButton } from '../features/Speak';
 import { EXPRESSION_CATEGORIES, EXPR_CAT_LABEL, NATURALNESS, NATURALNESS_LABEL, REGISTERS, REGISTER_LABEL, type Expression } from '../db/types';
 import { Badge, Button, Empty, Field, Input, Modal, PageHeader, Select, Textarea, useToast } from '../ui/kit';
 import { ExamplesEditor } from '../features/ListEditors';
@@ -55,6 +57,50 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
+function ExpressionView({ x, onEdit }: { x: Expression; onEdit: () => void }) {
+  return (
+    <article className="space-y-5">
+      <header>
+        <div className="flex items-start gap-3">
+          <h3 className="fr text-[28px] leading-tight" lang="fr">{x.text}</h3>
+          <SpeakButton text={x.text} className="mt-1" />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {x.register && <Badge>{REGISTER_LABEL[x.register as keyof typeof REGISTER_LABEL] ?? x.register}</Badge>}
+          {x.category && <Badge>{EXPR_CAT_LABEL[x.category as keyof typeof EXPR_CAT_LABEL] ?? x.category}</Badge>}
+          {x.naturalness && <Badge tone={x.naturalness === 'natural' ? 'good' : x.naturalness === 'inappropriate' || x.naturalness === 'correct-unnatural' ? 'warn' : 'neutral'}>{NATURALNESS_LABEL[x.naturalness as keyof typeof NATURALNESS_LABEL]}</Badge>}
+        </div>
+      </header>
+      {(x.defEn || x.defZh) ? (
+        <div className="space-y-1">
+          {x.defEn && <p className="text-[17px]">{x.defEn}</p>}
+          {x.defZh && <p className="text-muted">{x.defZh}</p>}
+        </div>
+      ) : <p className="text-sm text-faint">{tr('还没有释义。')}</p>}
+      <ReadSection title={tr('使用语境')} show={!!x.context}><Para>{x.context}</Para></ReadSection>
+      <ReadSection title={tr('例句')} show={x.examples.length > 0}>
+        <ul className="space-y-3">
+          {x.examples.map((e, i) => (
+            <li key={i} className="flex gap-2">
+              <SpeakButton size="sm" text={e.fr} className="mt-0.5" />
+              <div>
+                <p className="fr italic" lang="fr">{e.fr}</p>
+                {e.en && <p className="text-sm text-muted">{e.en}</p>}
+                {e.zh && <p className="text-sm text-muted">{e.zh}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </ReadSection>
+      <ReadSection title={tr('示例对话')} show={!!x.dialogue}>
+        <div className="flex gap-2"><SpeakButton size="sm" text={x.dialogue ?? ''} className="mt-0.5" /><Para fr>{x.dialogue}</Para></div>
+      </ReadSection>
+      <ReadSection title={tr('笔记')} show={!!x.notes}><Para>{x.notes}</Para></ReadSection>
+      <ReadFooter onEdit={onEdit} />
+    </article>
+  );
+}
+
 export default function ExpressionsPage() {
   const list = useLiveQuery(() => all<Expression>('expression'), []);
   const [q, setQ] = useState('');
@@ -62,6 +108,8 @@ export default function ExpressionsPage() {
   const [reg, setReg] = useState('');
   const [editing, setEditing] = useState<Draft | null>(null);
   const [batch, setBatch] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const viewing = viewingId ? list?.find((x) => x.id === viewingId) : undefined;
   const rows = useMemo(() => (list ?? [])
     .filter((x) => !q || `${x.text} ${x.defEn} ${x.defZh}`.toLowerCase().includes(q.toLowerCase()))
     .filter((x) => !cat || x.category === cat)
@@ -80,7 +128,7 @@ export default function ExpressionsPage() {
         <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
           {rows.map((x) => (
             <li key={x.id}>
-              <button className="w-full px-4 py-3 text-left hover:bg-paper" onClick={() => setEditing(x)}>
+              <button className="w-full px-4 py-3 text-left hover:bg-paper" onClick={() => setViewingId(x.id)}>
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="fr text-lg">{x.text}</span>
                   {x.register && <Badge>{REGISTER_LABEL[x.register] ?? x.register}</Badge>}
@@ -92,6 +140,9 @@ export default function ExpressionsPage() {
           ))}
         </ul>
       )}
+      <Modal open={!!viewing && !editing} onClose={() => setViewingId(null)} title={tr('表达')} wide>
+        {viewing && <ExpressionView x={viewing} onEdit={() => setEditing(viewing)} />}
+      </Modal>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑表达') : tr('新表达')} wide>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>

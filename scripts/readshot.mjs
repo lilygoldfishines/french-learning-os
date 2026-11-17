@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+await p.goto('http://localhost:4173/#/data');
+await p.getByLabel('粘贴 JSON').fill(JSON.stringify({ grammar: [{ name: 'Le subjonctif après bien que', cefr: 'B2', category: '从句', structure: 'bien que + subjonctif', explanationEn: 'Concessive clauses introduced by bien que take the subjunctive.', explanationZh: '让步从句要用虚拟式。', correctExamples: ["Bien qu'il pleuve, on tourne.", 'Bien que le budget soit serré, le film avance.'], incorrectExamples: ["Bien qu'il pleut, on tourne."], commonErrors: '受口语影响误用直陈式。' }] }));
+await p.getByRole('button', { name: '校验并预览' }).click();
+await p.getByRole('button', { name: '确认导入' }).click();
+await p.waitForTimeout(400);
+await p.goto('http://localhost:4173/#/grammar'); await p.waitForTimeout(400);
+await p.getByRole('button', { name: /^Le subjonctif après/ }).click(); await p.waitForTimeout(300);
+await p.screenshot({ path: '/tmp/gview.png' });
+await b.close();

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { all, remove } from '../db/db';
 import { addVocab, emptyVocab, saveVocab, ValidationError } from '../db/items';
@@ -14,6 +14,7 @@ import { aiFillVocab, AiError, mergeFill, useAiConfig } from '../ai/fill';
 import { KnowledgeTabs } from './More';
 import { tr, trf } from '../i18n';
 import { isAudioFile, SpeakButton } from '../features/Speak';
+import { ReadFooter, ReadSection } from '../features/ReadView';
 
 type Draft = Omit<Vocab, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev'> & { id?: string };
 
@@ -106,15 +107,6 @@ export function VocabEditor({ initial, onClose }: { initial: Draft; onClose: () 
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section>
-      <h3 className="mb-1 text-xs uppercase tracking-wider text-faint">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
 /** Read-only page for one word; editing is one tap away. */
 export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
   const word = displayLemma(v);
@@ -145,7 +137,7 @@ export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
         </div>
       ) : <p className="text-sm text-faint">{tr('还没有释义。')}</p>}
       {v.examples.length > 0 && (
-        <Section title={tr('例句')}>
+        <ReadSection title={tr('例句')}>
           <ul className="space-y-3">
             {v.examples.map((e, i) => (
               <li key={i} className="flex gap-2">
@@ -158,22 +150,20 @@ export function VocabView({ v, onEdit }: { v: Vocab; onEdit: () => void }) {
               </li>
             ))}
           </ul>
-        </Section>
+        </ReadSection>
       )}
       {lists.filter(([, xs]) => xs.length).map(([t, xs]) => (
-        <Section key={t} title={t}><p className="fr" lang="fr">{xs.join(' · ')}</p></Section>
+        <ReadSection key={t} title={t}><p className="fr" lang="fr">{xs.join(' · ')}</p></ReadSection>
       ))}
       {v.pos === 'verb' && (
-        <Section title={tr('动词变位')}>
+        <ReadSection title={tr('动词变位')}>
           {v.conjugation && <p className="text-sm">{v.conjugation}</p>}
           <a className="text-sm text-accent underline" href={`#/conjugation?v=${encodeURIComponent(v.lemma.trim())}`}>{tr('查看完整变位表 →')}</a>
-        </Section>
+        </ReadSection>
       )}
-      {v.topics.length > 0 && <Section title={tr('主题')}><p className="text-sm">{v.topics.map((t) => TOPIC_LABEL[t as keyof typeof TOPIC_LABEL] ?? t).join(' · ')}</p></Section>}
-      {v.notes && <Section title={tr('个人笔记')}><p className="whitespace-pre-wrap text-sm">{v.notes}</p></Section>}
-      <div className="flex justify-end border-t border-line pt-4">
-        <Button kind="primary" onClick={onEdit}>{tr('编辑')}</Button>
-      </div>
+      {v.topics.length > 0 && <ReadSection title={tr('主题')}><p className="text-sm">{v.topics.map((t) => TOPIC_LABEL[t as keyof typeof TOPIC_LABEL] ?? t).join(' · ')}</p></ReadSection>}
+      {v.notes && <ReadSection title={tr('个人笔记')}><p className="whitespace-pre-wrap text-sm">{v.notes}</p></ReadSection>}
+      <ReadFooter onEdit={onEdit} />
     </article>
   );
 }

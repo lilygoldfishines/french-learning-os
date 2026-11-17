@@ -603,3 +603,59 @@ test('20 · batch add for expressions and grammar: preview, levels, duplicates o
   await page.getByRole('button', { name: 'B2', exact: true }).click();
   await expect(page.getByText('le subjonctif après bien que')).toBeVisible();
 });
+
+test('21 · grammar, expressions and sentences open in a reading view; Edit leads to the form and back', async ({ page }) => {
+  // grammar: a built-in point
+  await go(page, '/grammar');
+  await page.getByRole('button', { name: /^被动语态 Voix passive/ }).click();
+  let view = page.getByRole('dialog', { name: '语法点', exact: true });
+  await expect(view.getByRole('heading', { name: '被动语态 Voix passive' })).toBeVisible();
+  await expect(view.getByRole('textbox')).toHaveCount(0);
+  await expect(view.getByText('这个语法点还没有内容')).toBeVisible();
+  await view.getByRole('group', { name: '掌握程度' }).getByRole('button', { name: '了解' }).click();
+  await expect(view.getByRole('button', { name: '了解' })).toHaveAttribute('aria-pressed', 'true');
+  await view.getByRole('button', { name: '编辑' }).click();
+  let ed = page.getByRole('dialog', { name: '编辑语法点' });
+  await ed.getByLabel('结构').fill('être + participe passé');
+  await ed.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(view.getByText('être + participe passé')).toBeVisible();
+  await expect(view.getByText('这个语法点还没有内容')).toHaveCount(0);
+  await view.getByRole('button', { name: '加入复习' }).click();
+  await expect(view.getByText('✓ 已在复习中')).toBeVisible();
+  await view.getByRole('button', { name: '关闭' }).click();
+  await expect(page.getByRole('button', { name: /^被动语态 Voix passive/ }).getByText('了解')).toBeVisible();
+
+  // expression
+  await go(page, '/expressions');
+  await page.getByRole('button', { name: '＋ 表达' }).click();
+  ed = page.getByRole('dialog', { name: '新表达' });
+  await ed.getByLabel('法语表达').fill('avoir le cafard');
+  await ed.getByLabel('中文解释').fill('情绪低落');
+  await ed.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: /^avoir le cafard/ }).click();
+  view = page.getByRole('dialog', { name: '表达', exact: true });
+  await expect(view.getByRole('heading', { name: 'avoir le cafard' })).toBeVisible();
+  await expect(view.getByRole('button', { name: '朗读 avoir le cafard' })).toBeVisible();
+  await expect(view.getByRole('textbox')).toHaveCount(0);
+  await view.getByRole('button', { name: '编辑' }).click();
+  await page.getByRole('dialog', { name: '编辑表达' }).getByLabel('英文释义').fill('to feel down');
+  await page.getByRole('dialog', { name: '编辑表达' }).getByRole('button', { name: '保存', exact: true }).click();
+  await expect(view.getByText('to feel down')).toBeVisible();
+  await view.getByRole('button', { name: '关闭' }).click();
+
+  // sentence
+  await go(page, '/sentences');
+  await page.getByRole('button', { name: '＋ 句子' }).click();
+  ed = page.getByRole('dialog', { name: '新句子' });
+  await ed.getByLabel('法语句子').fill('On tourne demain à l’aube.');
+  await ed.getByLabel('出处').fill('plan de travail');
+  await ed.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: /^On tourne demain/ }).click();
+  view = page.getByRole('dialog', { name: '句子', exact: true });
+  await expect(view.getByText('plan de travail')).toBeVisible();
+  await expect(view.getByRole('textbox')).toHaveCount(0);
+  await view.getByRole('button', { name: '编辑' }).click();
+  await page.getByRole('dialog', { name: '编辑句子' }).getByLabel('中文').fill('我们明天黎明开拍。');
+  await page.getByRole('dialog', { name: '编辑句子' }).getByRole('button', { name: '保存', exact: true }).click();
+  await expect(view.getByText('我们明天黎明开拍。')).toBeVisible();
+});

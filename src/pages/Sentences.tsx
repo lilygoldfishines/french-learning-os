@@ -5,6 +5,8 @@ import { addSentence } from '../db/items';
 import type { Sentence } from '../db/types';
 import { Button, Empty, Field, Input, Modal, PageHeader, Textarea, useToast } from '../ui/kit';
 import { KnowledgeTabs } from './More';
+import { Para, ReadFooter, ReadSection } from '../features/ReadView';
+import { SpeakButton } from '../features/Speak';
 import { tr } from '../i18n';
 
 type Draft = Omit<Sentence, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'rev'> & { id?: string };
@@ -36,10 +38,32 @@ function Editor({ initial, onClose }: { initial: Draft; onClose: () => void }) {
   );
 }
 
+function SentenceView({ s, onEdit }: { s: Sentence; onEdit: () => void }) {
+  return (
+    <article className="space-y-5">
+      <div className="flex items-start gap-3">
+        <SpeakButton text={s.fr} className="mt-1" />
+        <p className="fr text-[22px] leading-snug" lang="fr">{s.fr}</p>
+      </div>
+      {(s.en || s.zh) && (
+        <div className="space-y-1">
+          {s.en && <p>{s.en}</p>}
+          {s.zh && <p className="text-muted">{s.zh}</p>}
+        </div>
+      )}
+      <ReadSection title={tr('出处')} show={!!s.source}><Para>{s.source}</Para></ReadSection>
+      <ReadSection title={tr('笔记')} show={!!s.notes}><Para>{s.notes}</Para></ReadSection>
+      <ReadFooter onEdit={onEdit} />
+    </article>
+  );
+}
+
 export default function SentencesPage() {
   const list = useLiveQuery(() => all<Sentence>('sentence'), []);
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Draft | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const viewing = viewingId ? list?.find((x) => x.id === viewingId) : undefined;
   const rows = (list ?? []).filter((s) => !q || `${s.fr} ${s.en} ${s.zh} ${s.source}`.toLowerCase().includes(q.toLowerCase())).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return (
     <div>
@@ -50,7 +74,7 @@ export default function SentencesPage() {
         <ul className="divide-y divide-line rounded-lg border border-line bg-panel">
           {rows.map((s) => (
             <li key={s.id}>
-              <button className="w-full px-4 py-3 text-left hover:bg-paper" onClick={() => setEditing(s)}>
+              <button className="w-full px-4 py-3 text-left hover:bg-paper" onClick={() => setViewingId(s.id)}>
                 <div className="fr">{s.fr}</div>
                 <div className="text-sm text-muted">{[s.en, s.zh].filter(Boolean).join(' · ')}</div>
                 {s.source && <div className="text-xs text-faint">{s.source}</div>}
@@ -59,6 +83,9 @@ export default function SentencesPage() {
           ))}
         </ul>
       )}
+      <Modal open={!!viewing && !editing} onClose={() => setViewingId(null)} title={tr('句子')}>
+        {viewing && <SentenceView s={viewing} onEdit={() => setEditing(viewing)} />}
+      </Modal>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? tr('编辑句子') : tr('新句子')}>
         {editing && <Editor initial={editing} onClose={() => setEditing(null)} />}
       </Modal>
