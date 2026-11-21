@@ -713,5 +713,14 @@ const EN: Record<string, string> = {
   "已加入学习": "Added to Learn",
   "加入学习": "Add to Learn",
   "✓ 在学习队列中": "✓ Waiting in Learn",
+  "表达 | 英文 | 中文 | 例句 | 例句翻译": "expression | English | Chinese | example | translation",
+  "。释义可以只写一种，中英文顺序不限；更多例句另起一行用「-」开头。语域等导入后再补。": ". One meaning is enough, in either order; for more examples, start a new line with “-”. Add register etc. after importing.",
+  "。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。更多例句另起一行用「-」开头。": ". Only the name is required; the rest can be blank or left out, and the explanation can be in English or Chinese. Put a level like B2 in any field, or [B2] before the name, to file it under that level. For more examples, start a new line with “-”.",
+  "法语 | 英文 | 中文 | 例句 | 例句翻译": "French | English | Chinese | example | translation",
+  "。只有法语是必填的，例句和翻译可以省略；翻译写英文、中文或两个都写都行。": ". Only the French is required; the example and its translation are optional, and the translation can be English, Chinese or both.",
+  "想加更多例句，就在这个词下面另起一行，用「-」开头。": "For more examples, add lines starting with “-” under the word.",
+  "名词带冠词（la scène）或阴阳性标注（l'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。": "For nouns, give the article (la scène) or a gender mark (l'assiette (f.), n.m., [f]); nouns without a gender can be fixed in the preview.",
+  "la scène | scene | 场景 | On tourne la scène ce soir. | 今晚拍这场戏。\n- Il y a trop de monde sur la scène. | There are too many people on stage.\nl'huile (f.) | oil | 油\ntourner | to shoot | 拍摄 | Nous tournons à Paris.": "la scène | scene | 场景 | On tourne la scène ce soir. | We shoot the scene tonight.\n- Il y a trop de monde sur la scène. | There are too many people on stage.\nl'huile (f.) | oil | 油\ntourner | to shoot | 拍摄 | Nous tournons à Paris.",
+  " 等 {0} 个例句": " ({0} examples)",
 };
 export default EN;

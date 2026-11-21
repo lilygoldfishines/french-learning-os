@@ -134,7 +134,8 @@ function GrammarBatch({ defaultCefr, onClose }: { defaultCefr: Cefr; onClose: ()
   const [cefr, setCefr] = useState<Cefr>(defaultCefr);
   return (
     <BatchAdd kind="grammar" onClose={onClose} parse={(l) => parseGrammarLine(l, cefr)}
-      help={<>{tr('每行一条：')}<span className="fr">{tr('名称 | 结构 | 说明 | 例句')}</span>{tr('。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。')}</>}
+      addExample={(raw, ex) => ({ ...raw, correctExamples: [...((raw.correctExamples as string[]) ?? []), ex.fr] })}
+      help={<>{tr('每行一条：')}<span className="fr">{tr('名称 | 结构 | 说明 | 例句')}</span>{tr('。只有名称是必填的，后面可以留空或省略；说明写中文或英文都行。任意一栏写 B2 这样的等级，或在名称前加 [B2]，就按那个等级录入。更多例句另起一行用「-」开头。')}</>}
       placeholder={tr("le subjonctif après bien que | bien que + subjonctif | 让步从句要用虚拟式 | Bien qu'il pleuve, on tourne.\n[B2] le plus-que-parfait | avoir/être à l'imparfait + participe passé | 过去的过去\nla mise en relief | c'est… qui / c'est… que")}
       extra={<Field label={tr('没写等级的行默认等级')}><Select value={cefr} onChange={(e) => setCefr(e.target.value as Cefr)} options={CEFR_LEVELS.map((l) => ({ value: l, label: l }))} /></Field>}
     />

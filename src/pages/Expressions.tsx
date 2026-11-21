@@ -6,7 +6,7 @@ import { findExpressionDuplicate, parseExpressionLine } from '../db/rules';
 import BatchAdd from '../features/BatchAdd';
 import { Para, ReadFooter, ReadSection } from '../features/ReadView';
 import { SpeakButton } from '../features/Speak';
-import { EXPRESSION_CATEGORIES, EXPR_CAT_LABEL, NATURALNESS, NATURALNESS_LABEL, REGISTERS, REGISTER_LABEL, type Expression } from '../db/types';
+import { EXPRESSION_CATEGORIES, EXPR_CAT_LABEL, NATURALNESS, NATURALNESS_LABEL, REGISTERS, REGISTER_LABEL, type Example, type Expression } from '../db/types';
 import { Badge, Button, Empty, Field, Input, Modal, PageHeader, Select, Textarea, useToast } from '../ui/kit';
 import { ExamplesEditor } from '../features/ListEditors';
 import { KnowledgeTabs } from './More';
@@ -148,7 +148,8 @@ export default function ExpressionsPage() {
       </Modal>
       <Modal open={batch} onClose={() => setBatch(false)} title={tr('批量录入')} wide>
         {batch && <BatchAdd kind="expression" onClose={() => setBatch(false)} parse={parseExpressionLine}
-          help={<>{tr('每行一条：')}<span className="fr">{tr('表达 | 英文 | 中文')}</span>{tr('。释义可以只写一种，中英文顺序不限；语域、例句等导入后再补。')}</>}
+          addExample={(raw, ex) => ({ ...raw, examples: [...((raw.examples as Example[]) ?? []), ex] })}
+          help={<>{tr('每行一条：')}<span className="fr">{tr('表达 | 英文 | 中文 | 例句 | 例句翻译')}</span>{tr('。释义可以只写一种，中英文顺序不限；更多例句另起一行用「-」开头。语域等导入后再补。')}</>}
           placeholder={tr('faire la grasse matinée | to sleep in | 睡懒觉\navoir le cafard | to feel down | 情绪低落\nça me dit quelque chose | 好像有点印象')} />}
       </Modal>
     </div>

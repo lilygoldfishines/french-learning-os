@@ -706,3 +706,27 @@ test('22 · Learn and Review cover words, expressions, sentences and grammar, wi
   await rk.getByRole('button', { name: /^全部/ }).click();
   await expect(page.getByRole('button', { name: '点击翻面' })).toContainText('On tourne demain.');
 });
+
+test('23 · batch add with examples: inline example + "-" lines attach to the word above', async ({ page }) => {
+  await go(page, '/vocab');
+  await page.getByRole('button', { name: '批量录入' }).click();
+  const dlg = page.getByRole('dialog', { name: '批量录入' });
+  await dlg.getByLabel('批量内容').fill([
+    'la scène | scene | 场景 | On tourne la scène ce soir. | 今晚拍这场戏。',
+    '- Il y a trop de monde sur la scène. | There are too many people on stage.',
+    '- La scène finale est très courte.',
+    'le cadrage | framing | 构图',
+  ].join('\n'));
+  await dlg.getByRole('button', { name: '预览' }).click();
+  await expect(dlg.getByText('新增 2')).toBeVisible(); // "-" lines are not entries
+  await expect(dlg.getByText('« On tourne la scène ce soir. » 等 3 个例句', { exact: false })).toBeVisible();
+  await dlg.getByRole('button', { name: '确认导入' }).click();
+  await expect(page.getByText('导入 2 条，跳过 0 条')).toBeVisible();
+  await page.getByRole('button', { name: /^la scène/ }).click();
+  const view = page.getByRole('dialog', { name: '词条', exact: true });
+  await expect(view.getByText('On tourne la scène ce soir.')).toBeVisible();
+  await expect(view.getByText('今晚拍这场戏。')).toBeVisible();
+  await expect(view.getByText('There are too many people on stage.')).toBeVisible();
+  await expect(view.getByText('La scène finale est très courte.')).toBeVisible();
+  await expect(view.getByRole('button', { name: /^朗读 / })).toHaveCount(4); // the word + 3 examples
+});

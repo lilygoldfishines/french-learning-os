@@ -236,9 +236,9 @@ describe('parseBatchLine', async () => {
 describe('batch lines for expressions and grammar', async () => {
   const { parseExpressionLine, parseGrammarLine, parseBatchLine } = await import('./rules');
   it('expression: meanings in either order, Chinese ；kept whole', () => {
-    expect(parseExpressionLine('avoir le cafard | to feel down | 情绪低落')).toEqual({ text: 'avoir le cafard', defEn: 'to feel down', defZh: '情绪低落' });
-    expect(parseExpressionLine('ça marche | 行；可以 | it works')).toEqual({ text: 'ça marche', defEn: 'it works', defZh: '行；可以' });
-    expect(parseExpressionLine('à la limite')).toEqual({ text: 'à la limite', defEn: undefined, defZh: undefined });
+    expect(parseExpressionLine('avoir le cafard | to feel down | 情绪低落')).toEqual({ text: 'avoir le cafard', defEn: 'to feel down', defZh: '情绪低落', examples: [] });
+    expect(parseExpressionLine('ça marche | 行；可以 | it works')).toEqual({ text: 'ça marche', defEn: 'it works', defZh: '行；可以', examples: [] });
+    expect(parseExpressionLine('à la limite')).toEqual({ text: 'à la limite', defEn: undefined, defZh: undefined, examples: [] });
   });
   it('grammar: level from a field or [B2], explanation language detected', () => {
     expect(parseGrammarLine("le subjonctif après bien que | bien que + subj. | 让步从句 | Bien qu'il pleuve. | B2", 'B1')).toEqual({
@@ -282,5 +282,25 @@ describe('learn queue', () => {
     expect(rq.due.map((c) => c.itemType)).toEqual(['grammar']); // comes back in review shortly
     await update<Grammar>('grammar', (await all<Grammar>('grammar'))[1].id, { structure: 'x', skipped: true });
     expect((await buildLearnQueue(s)).byType.grammar ?? 0).toBe(0); // skipped points stay out
+  });
+});
+
+describe('examples in batch lines', async () => {
+  const { parseBatchLine, parseExpressionLine, isExampleLine, exampleFromLine } = await import('./rules');
+  it('vocab: 4th field is the example, the rest are its translations sorted by script', () => {
+    expect(parseBatchLine('la scène | scene | 场景 | On tourne la scène ce soir. | 今晚拍这场戏。 | We shoot it tonight.', 'noun').examples)
+      .toEqual([{ fr: 'On tourne la scène ce soir.', en: 'We shoot it tonight.', zh: '今晚拍这场戏。' }]);
+    expect(parseBatchLine('tourner | to shoot | | Nous tournons à Paris.', 'verb')).toMatchObject({ defZh: undefined, examples: [{ fr: 'Nous tournons à Paris.' }] });
+    expect(parseBatchLine('la scène | scene | 场景', 'noun').examples).toEqual([]);
+  });
+  it('expression: example after the two meanings', () => {
+    expect(parseExpressionLine("avoir le cafard | to feel down | 情绪低落 | J'ai le cafard. | 我心情不好。")).toEqual({
+      text: 'avoir le cafard', defEn: 'to feel down', defZh: '情绪低落', examples: [{ fr: "J'ai le cafard.", zh: '我心情不好。' }],
+    });
+  });
+  it('continuation lines', () => {
+    for (const l of ['- Il pleut. | It rains.', '• Il pleut.', '例：Il pleut。', 'ex: Il pleut.', '  – Il pleut.']) expect(isExampleLine(l)).toBe(true);
+    for (const l of ['la pluie | rain', "l'eau (f.)", 'tourner']) expect(isExampleLine(l)).toBe(false);
+    expect(exampleFromLine('- Il pleut. | 下雨了。 | It rains.')).toEqual({ fr: 'Il pleut.', en: 'It rains.', zh: '下雨了。' });
   });
 });

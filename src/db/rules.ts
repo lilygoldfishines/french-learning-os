@@ -1,4 +1,4 @@
-import type { Cefr, ErrorEntry, ErrorStatus, Expression, Vocab } from './types';
+import type { Cefr, ErrorEntry, ErrorStatus, Example, Expression, Vocab } from './types';
 import { tr } from '../i18n';
 
 const ARTICLE_RE = /^(le|la|les|un|une|des|du|de la|de l'|l'|l’)\s*/i;
@@ -133,11 +133,11 @@ export function addDays(ymd: string, n: number): string {
 /** Gender markers people commonly write after a noun: (f.) (m) [f] n.f. nm (阴) (阳性) — and m/f alone. */
 const GENDER_MARK = /\s*(?:\(\s*(?:n\.?\s*)?([mf])\.?\s*\)|\[\s*(?:n\.?\s*)?([mf])\.?\s*\]|\(\s*(阴|阳)性?\s*\)|（\s*(?:n\.?\s*)?([mf阴阳])\.?性?\s*）|\bn\.?\s*([mf])\.?(?=\s|$)|\s([mf])\.?(?=\s*$))\s*$/i;
 
-export interface BatchLine { lemma: string; article?: string; gender?: 'm' | 'f'; pos: Vocab['pos']; defEn?: string; defZh?: string }
+export interface BatchLine { lemma: string; article?: string; gender?: 'm' | 'f'; pos: Vocab['pos']; defEn?: string; defZh?: string; examples: Example[] }
 
-/** One line of the batch box: "l'assiette (f.) | plate | 盘子". */
+/** One line of the batch box: "l'assiette (f.) | plate | 盘子 | Passe-moi l'assiette. | Pass me the plate. | 把盘子递给我。" */
 export function parseBatchLine(line: string, defaultPos: Vocab['pos']): BatchLine {
-  const [frRaw = '', en, zh] = splitFields(line, true);
+  const [frRaw = '', en, zh, ...rest] = splitFields(line, true);
   let fr = frRaw.trim();
   let gender: 'm' | 'f' | undefined;
   const m = fr.match(GENDER_MARK);
@@ -149,8 +149,23 @@ export function parseBatchLine(line: string, defaultPos: Vocab['pos']): BatchLin
   const { article, lemma } = guessArticle(fr);
   gender = gender ?? articleToGender(article);
   const pos = article || gender ? 'noun' : defaultPos;
-  return { lemma, article, gender, pos, defEn: en?.trim() || undefined, defZh: zh?.trim() || undefined };
+  const ex = parseExample(rest);
+  return { lemma, article, gender, pos, defEn: en?.trim() || undefined, defZh: zh?.trim() || undefined, examples: ex ? [ex] : [] };
 }
+
+/** "例句 | translation | 翻译": the first field is the French; the others are sorted by script (Chinese vs. not). */
+export function parseExample(fields: string[]): Example | null {
+  const [fr, ...tr] = fields.map((f) => f.trim()).filter(Boolean);
+  if (!fr) return null;
+  const zh = tr.find((t) => HAS_CJK.test(t));
+  const en = tr.find((t) => t !== zh);
+  return { fr, ...(en ? { en } : {}), ...(zh ? { zh } : {}) };
+}
+
+/** A line that adds an example to the entry above it: "- Il pleut. | It's raining." (also •, –, 例：, ex:). */
+export const EXAMPLE_LINE = /^(?:[-–—•·*]|例[:：]|ex(?:emple)?\s*[:：.])\s*/i;
+export const isExampleLine = (line: string) => EXAMPLE_LINE.test(line.trim());
+export const exampleFromLine = (line: string) => parseExample(splitFields(line.trim().replace(EXAMPLE_LINE, '')));
 
 const HAS_CJK = /[\u3400-\u9fff]/;
 
@@ -161,11 +176,13 @@ export function splitFields(line: string, allowSemicolon = false): string[] {
 }
 
 /** "faire la grasse matinée | to sleep in | 睡懒觉" — the two meanings may come in either order. */
-export function parseExpressionLine(line: string): { text: string; defEn?: string; defZh?: string } {
-  const [text = '', ...defs] = splitFields(line);
+export function parseExpressionLine(line: string): { text: string; defEn?: string; defZh?: string; examples: Example[] } {
+  const [text = '', d1, d2, ...rest] = splitFields(line);
+  const defs = [d1, d2].filter((d): d is string => !!d);
   const zh = defs.find((d) => HAS_CJK.test(d));
-  const en = defs.find((d) => d && d !== zh);
-  return { text, defEn: en || undefined, defZh: zh || undefined };
+  const en = defs.find((d) => d !== zh);
+  const ex = parseExample(rest); // from the 4th field on: example | its translation(s)
+  return { text, defEn: en || undefined, defZh: zh || undefined, examples: ex ? [ex] : [] };
 }
 
 /** "subjonctif après bien que | bien que + subj. | 让步从句用虚拟式 | Bien qu'il pleuve, on tourne. | B2" — level may sit in any field or as [B2]. */

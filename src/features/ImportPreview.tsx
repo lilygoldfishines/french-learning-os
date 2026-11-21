@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { buildPreview, commit, KIND_LABEL, type Action, type CommitReport, type PreviewRow } from '../io/aiImport';
 import { Badge, Button, cx } from '../ui/kit';
-import { tr } from '../i18n';
+import { tr, trf } from '../i18n';
 import { displayLemma } from '../db/rules';
 
 const STATUS: Record<PreviewRow['status'], { label: string; tone: 'good' | 'warn' | 'bad' | 'neutral' | 'accent' }> = {
@@ -24,7 +24,9 @@ function label(r: PreviewRow): string {
 function sub(r: PreviewRow): string {
   const d = r.data as Record<string, unknown> | undefined;
   if (!d) return '';
-  return [d.defEn, d.defZh, d.en, d.zh, d.explanation].filter(Boolean).join(' · ');
+  const ex = Array.isArray(d.examples) ? (d.examples as { fr: string }[]) : Array.isArray(d.correctExamples) ? (d.correctExamples as string[]).map((fr) => ({ fr })) : [];
+  const exText = ex.length ? `« ${ex[0].fr} »${ex.length > 1 ? trf(' 等 {0} 个例句', ex.length) : ''}` : '';
+  return [d.defEn, d.defZh, d.en, d.zh, d.explanation, exText].filter(Boolean).join(' · ');
 }
 
 function actionsFor(r: PreviewRow): { a: Action; label: string }[] {

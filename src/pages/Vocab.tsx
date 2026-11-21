@@ -4,7 +4,7 @@ import { all, remove } from '../db/db';
 import { addVocab, emptyVocab, saveVocab, ValidationError } from '../db/items';
 import { displayLemma, normalize, parseBatchLine } from '../db/rules';
 import {
-  CEFR_LEVELS, LEARN_STATUS, LEARN_STATUS_LABEL, POS, POS_LABEL, TOPIC_LABEL, VOCAB_TOPICS, type Gender, type Pos, type Vocab,
+  CEFR_LEVELS, type Example, LEARN_STATUS, LEARN_STATUS_LABEL, POS, POS_LABEL, TOPIC_LABEL, VOCAB_TOPICS, type Gender, type Pos, type Vocab,
 } from '../db/types';
 import { Button, GramTag, Empty, Field, Input, Modal, PageHeader, Select, TagsInput, Textarea, useToast } from '../ui/kit';
 import { GenderPicker } from '../features/QuickAdd';
@@ -173,8 +173,13 @@ function VocabBatch({ onClose }: { onClose: () => void }) {
   return (
     <BatchAdd kind="vocab" onClose={onClose}
       parse={(l) => parseBatchLine(l, pos)}
-      help={<>{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文')}</span>{tr('。名词带冠词（la scène）或阴阳性标注（l\'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。')}</>}
-      placeholder={tr('la scène | scene | 场景\nl\'huile (f.) | oil | 油\ntourner | to shoot | 拍摄')}
+      addExample={(raw, ex) => ({ ...raw, examples: [...((raw.examples as Example[]) ?? []), ex] })}
+      help={<>
+        <p>{tr('每行一个词：')}<span className="fr">{tr('法语 | 英文 | 中文 | 例句 | 例句翻译')}</span>{tr('。只有法语是必填的，例句和翻译可以省略；翻译写英文、中文或两个都写都行。')}</p>
+        <p className="mt-1">{tr('想加更多例句，就在这个词下面另起一行，用「-」开头。')}</p>
+        <p className="mt-1">{tr('名词带冠词（la scène）或阴阳性标注（l\'assiette (f.)、n.m.、[f]）都可以；没写阴阳性的名词可以在预览里直接选。')}</p>
+      </>}
+      placeholder={tr('la scène | scene | 场景 | On tourne la scène ce soir. | 今晚拍这场戏。\n- Il y a trop de monde sur la scène. | There are too many people on stage.\nl\'huile (f.) | oil | 油\ntourner | to shoot | 拍摄 | Nous tournons à Paris.')}
       extra={<Field label={tr('不带冠词的行默认词性')}><Select value={pos} onChange={(e) => setPos(e.target.value as Pos)} options={POS.map((p) => ({ value: p, label: POS_LABEL[p] }))} /></Field>}
     />
   );
